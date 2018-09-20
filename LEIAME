@@ -1,0 +1,31 @@
+﻿Nome: Fernando Claudecir Erd      GRR:20152936
+Nome: Gabriel Ruschel Castanhel   GRR:20158812
+
+Lista de Diretórios e Arquivos
+     
+    Diretório Principal
+      |
+      |----files
+      |      |---aritmetica.c - Contém as operações aritméticas usadas para calcular o gradiente, ex: multiplicação de matriz, soma de vetores...
+      |      |---entrada.c    - Contém as função que faz a leitura e verifica as entradas.
+      |      |---gradiente.c  - Contém contem o método do gradiente conjugado, além da função que calcula o tempo.
+      |      |---generate.c   - Funções que geram o vetor B, a diagonal, a matriz, e a indexação.
+      |      |---main.c       - Contém o programa principal.
+      | 
+      |----include
+      |      |---aritmetica.h - Contém as definições das funções e includes do arquivo aritmetica.c
+      |      |---entrada.h    - Contém as definições das funções e includes do arquivo entrada.c
+      |      |---gradiente.h  - Contém as definições das funções e includes do arquivo aritmetica.c
+      |      |---generate.h   - Contém as definições das funções e includes do arquivo generate.c
+      |----makefile
+      |----LEIAME
+
+
+Algoritmos e Estrutura de Dados
+  Para armazenar a Matriz é usado um vetor do tamanho N*(nBandas/2+1) onde é armazenado apenas o valor das diagonais que a função GenerateDiagonal gera (as repetidas não são guardadas), e depois para saber qual índice representa no vetor é usado uma função de indexação que dado o índice da linha e coluna, retorna o índice que ele se encontra no vetor, também são usados outros vetores (maioria com tamanho N) para ajudar nas operações no calculo do método. Também foi feito funções para calcular as operações aritméticas, soma de vetores, multiplicações de vetor com a matriz. Para acumular o erro e a norma de cada iteração é usado uma matriz de tamanho [Max Iterações][2], onde a coluna 0 da matriz ira guardar a norma de cada iteração e o índice 1 vai ser guardado o erro.
+
+Dificuldades
+    A maior dificuldade foi entender como é a convergência do método, pois existe várias operações aritméticas envolvidas, assim como definir qual estrutura seria usada para armazenar a matriz, já que o vetor foi a melhor solução encontrada por não gastar muita memoria como uma matriz.
+
+Bugs Conhecidos:
+    --Quando o número de N é muito pequeno, o tempo do resíduo geralmente é zero.
