@@ -3,7 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
+#include "mmio.c"
+//#include "mmio.h"
 #define iNorma 0
 #define iErro 1
 
@@ -144,7 +145,7 @@ inline int generateRandomDiagonal( unsigned int N, unsigned int k, unsigned int 
 }
 
 //Função que gera a matriz
-inline void generateMatriz( unsigned int N, unsigned int nBandas, double *matriz ) {
+inline void generate_matriz( unsigned int N, unsigned int nBandas, double *matriz ) {
     double vetorAux[N];
     int AuxTam = N, indMatriz = 0, k = nBandas/2;
     int i = 0, j, indVetorAux = 0;
@@ -301,45 +302,75 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
 }
 
 int main (int argc, char *argv[]) {
-
-    unsigned int N;
+	MM_typecode matcode;
+	FILE *f;
+	int M, N, nz;   
+	int i=0, *row, *col;
+	double *val;
+	
+    //unsigned int N;
     double *b, *Matriz, *x, tol, contIt;
     int nBandas, maxIter;
-
-    if (Entrada(argc,argv,&N,&nBandas,&maxIter,&tol) ) {
-
-		double matrizSaida[maxIter][2];
-
-
-		b = (double *) malloc (sizeof(double)*N);
-		Matriz = (double *) malloc (sizeof(double)*(N*(nBandas/2+1)));
-		x = (double *) malloc (sizeof(double)*N);
-
-		srand(20162);
     
-		generateMatriz (N, nBandas, Matriz);
-		generateVector (N, b);
-
-		printf("###########\n");
-
-		contIt = GradienteConjugado(Matriz,b,N,nBandas,maxIter,tol,x,matrizSaida);
-
-		printf("#\n");
-		printf("# Norma Euclidiana do Resíduo e Erro aproximado\n");
-		imprimeSaida(matrizSaida,contIt);
-
-		printf("###########\n");
-		printf("%d\n",N);
-
-		imprimeVetor(N,x);
-
-		free (b);
-		free (x);
-		free (Matriz);
-		return 0;
+    f = fopen("boing.rsa", "r");
+    
+    if ( f == NULL ){
+		printf("Erro ao abrir o arquivo\n");
+		exit(1);
 	}
 	
-	else
-		return -1;
+	
+	// Le os Banner do arquivo
+
+	mm_read_banner(f, &matcode);
+
+	// Le as dimensoes da matriz
+
+	mm_read_mtx_crd_size(f, &M, &N, &nz);
+
+	// Aloca memoria para armazenar a matriz
+
+	row = (int *) malloc(nz * sizeof(int));
+    col = (int *) malloc(nz * sizeof(int));
+    val = (double *) malloc(nz * sizeof(double));
+
+	// Le a matriz 
+	for (i=0; i<nz; i++){
+		fscanf(f, "%d %d %lg\n", &row[i], &col[i], &val[i]);
+        // row[i]--;  /* Ajusta indices de 1 para 0 */
+        // col[i]--;
+    }
+    
+    // Escreve a matriz na tela
+  
+	mm_write_banner(stdout, matcode);
+	mm_write_mtx_crd_size(stdout, M, N, nz);
+    for (i=0; i<nz; i++){
+        fprintf(stdout, "%d %d %20.19g\n", row[i]+1, col[i]+1, val[i]);
+	}
+	double matrizSaida[maxIter][2];
+
+	srand(20162);
+    
+	//generate_matriz (N, nBandas, Matriz);
+	//generate_vector (N, b);
+
+	printf("###########\n");
+
+	//contIt = GradienteConjugado(Matriz,b,N,nBandas,maxIter,tol,x,matrizSaida);
+
+	printf("#\n");
+	printf("# Norma Euclidiana do Resíduo e Erro aproximado\n");
+	//imprimeSaida(matrizSaida,contIt);
+
+	printf("###########\n");
+	printf("%d\n",N);
+
+	//imprimeVetor(N,x);
+
+	free (b);
+	free (x);
+	free (Matriz);
+	return 0;
 
 }
