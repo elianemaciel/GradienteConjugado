@@ -3,24 +3,34 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include "mmio.c"
-//#include "mmio.h"
+// #include "mmio.c"
+#include "mmio.h"
 #define iNorma 0
 #define iErro 1
+
+
+//Função que dado o indice da matriz, retorna o indice do elemento no vetor
+inline int indexa (int i, int j, int nBandas) {
+
+    if (j >= i)
+	   return (nBandas+1)*i + (j - i);
+
+	return (nBandas+1)*j + (i - j);
+}
 
 //Multiplica Matriz com vetor
 inline void multiplicaMatriz_Vetor(double *matriz, double *v, double *z, unsigned int N, int nBandas) {
     int i,j, k = nBandas/2;
     double sum;
-    
+
 	for (i = 0; i < N; i++) {
         sum = 0;
-        
+
 		for (j = 0; j < N; j++) {
             if (abs(i-j) <= k)
                 sum += (matriz[indexa(i,j,k)] * v[j]);
         }
-        
+
 		z[i] = sum;
     }
 }
@@ -33,7 +43,7 @@ inline double multiplicaVetor_Vetor (double *a, double *b, unsigned int N) {
     for (i = 0; i < N; i++) {
         result += a[i]*b[i];
     }
-    
+
 	return result;
 
 }
@@ -68,7 +78,7 @@ inline void subtraiVetor (double *a, double *b, double *vetorFinal, unsigned int
 //Copia um vetor
 inline void copiaVetor (double *a, double *b, unsigned int N) {
 	int i;
-	
+
 	for (i = 0; i < N; i++) {
 		b[i] = a[i];
 	}
@@ -92,7 +102,7 @@ inline int Entrada(int argc, char *argv[], unsigned int *N, int *nBandas, int *m
         fprintf (stderr, "ERRO, argumento nBandas não informado\n");
 		return 0;
 	}
-		
+
 
     //caso -i exista, le argumento maxiter, se nao faz maxiter = n
     if ( (argv[3] != NULL) && !strcmp(argv[3], "-i") )
@@ -117,7 +127,7 @@ inline int Entrada(int argc, char *argv[], unsigned int *N, int *nBandas, int *m
 
 //Gera o vetor de termos indepedentes b
 inline void generateVector ( unsigned int N, double *b) {
-    double x; 
+    double x;
 	int i;
 
     for (i = 0; i < N; i++) {
@@ -161,14 +171,6 @@ inline void generate_matriz( unsigned int N, unsigned int nBandas, double *matri
     }
 }
 
-//Função que dado o indice da matriz, retorna o indice do elemento no vetor
-inline int indexa (int i, int j, int nBandas) {
-
-    if (j >= i)
-	   return (nBandas+1)*i + (j - i);
-
-	return (nBandas+1)*j + (i - j);
-}
 
 //Imprime Vetor
 inline void imprimeVetor (unsigned int N, double *b) {
@@ -176,14 +178,14 @@ inline void imprimeVetor (unsigned int N, double *b) {
 	for (i = 0; i < N; i++) {
         printf("%.14g ", b[i]);
     }
-    
+
 	printf("\n");
 }
 
 //Imprime saída no arquivo
 inline void imprimeSaida(double matrizSaida[][2], int contIt) {
     int i;
-    
+
 	for (i = 0; i < contIt; i++) {
         printf("# i=%d: %.14g %.14g\n",i,matrizSaida[i][iNorma],matrizSaida[i][iErro]);
     }
@@ -251,7 +253,7 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
         subtraiVetor (r, vetorAux, r, N);
 
         tresdinicio = timestamp();
-        
+
 		erro = multiplicaVetor_Vetor (r, r, N);
 
         tresdfinal = timestamp() - tresdinicio;
@@ -274,7 +276,7 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
 
         matrizSaida[k][iNorma] = sqrt(erro);
         matrizSaida[k][iErro] = erro;
-    
+
         if ( erro <= tol) {
             k = k+1;
             break;
@@ -304,22 +306,27 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
 int main (int argc, char *argv[]) {
 	MM_typecode matcode;
 	FILE *f;
-	int M, N, nz;   
+	int M, N, nz;
 	int i=0, *row, *col;
 	double *val;
-	
+
     //unsigned int N;
     double *b, *Matriz, *x, tol, contIt;
     int nBandas, maxIter;
-    
-    f = fopen("boing.rsa", "r");
-    
+
+    if (argc < 2){
+		fprintf(stderr, "%s < arquivo matriz >\n", argv[0]);
+		return 0;
+	}
+
+    f = fopen(argv[1], "r");
+
     if ( f == NULL ){
 		printf("Erro ao abrir o arquivo\n");
 		exit(1);
 	}
-	
-	
+
+
 	// Le os Banner do arquivo
 
 	mm_read_banner(f, &matcode);
@@ -334,15 +341,15 @@ int main (int argc, char *argv[]) {
     col = (int *) malloc(nz * sizeof(int));
     val = (double *) malloc(nz * sizeof(double));
 
-	// Le a matriz 
+	// Le a matriz
 	for (i=0; i<nz; i++){
 		fscanf(f, "%d %d %lg\n", &row[i], &col[i], &val[i]);
-        // row[i]--;  /* Ajusta indices de 1 para 0 */
-        // col[i]--;
+        row[i]--;  /* Ajusta indices de 1 para 0 */
+        col[i]--;
     }
-    
+
     // Escreve a matriz na tela
-  
+
 	mm_write_banner(stdout, matcode);
 	mm_write_mtx_crd_size(stdout, M, N, nz);
     for (i=0; i<nz; i++){
@@ -351,9 +358,9 @@ int main (int argc, char *argv[]) {
 	double matrizSaida[maxIter][2];
 
 	srand(20162);
-    
-	//generate_matriz (N, nBandas, Matriz);
-	//generate_vector (N, b);
+
+	/* generate_matriz (N, nBandas, Matriz);*/
+	/* generate_vector (N, b); */
 
 	printf("###########\n");
 
