@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "hb_io.h"
 #include <math.h>
-// #include "mmio.c"
-#include "mmio.h"
+
 #define iNorma 0
 #define iErro 1
-
 
 //Função que dado o indice da matriz, retorna o indice do elemento no vetor
 inline int indexa (int i, int j, int nBandas) {
@@ -19,7 +18,7 @@ inline int indexa (int i, int j, int nBandas) {
 }
 
 //Multiplica Matriz com vetor
-inline void multiplicaMatriz_Vetor(double *matriz, double *v, double *z, unsigned int N, int nBandas) {
+inline void multiplicaMatriz_Vetor(int *matriz, double *v, double *z, unsigned int N, int nBandas) {
     int i,j, k = nBandas/2;
     double sum;
 
@@ -76,7 +75,7 @@ inline void subtraiVetor (double *a, double *b, double *vetorFinal, unsigned int
 }
 
 //Copia um vetor
-inline void copiaVetor (double *a, double *b, unsigned int N) {
+inline void copiaVetor (int *a, double *b, unsigned int N) {
 	int i;
 
 	for (i = 0; i < N; i++) {
@@ -191,22 +190,17 @@ inline void imprimeSaida(double matrizSaida[][2], int contIt) {
     }
 }
 
-inline double timestamp(void) {
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return((double)(tp.tv_sec*1000.0 + tp.tv_usec/1000.0));
-}
 
 //Metodo do Gradiente Conjugado
 //Matriz = Vetor que simula a Matriz gerada
 //B = Vetor de termos indepentes
-//N = tamanho do sistema
+// N = tamanho do sistema
 //nBandas = Número de bandas presentes na matriz
 //maxIter = Número maximo de iterações, caso não seja definida é igual a N
 //tol = Número de tolerancia de erro permitida, caso não seja definida o erro e 0.00001
 //x = Vetor solução do sistema
 //matrizSaida = Matriz que guardara o Erro e a Norma de cada iteração
-inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nBandas, int maxIter, double tol, double *x, double matrizSaida[][2]) {
+inline int GradienteConjugado (int *matriz, int *b, unsigned int N, int nBandas, int maxIter, double tol, double *x, double matrizSaida[][2]) {
 
     //aux = variavel auxiliar
 	//erro = erro aproximado do sistema
@@ -240,7 +234,7 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
 
     for (k = 0; k < maxIter; k++) {
 
-        tminicio = timestamp();
+        // tminicio = timestamp();
 
         multiplicaMatriz_Vetor (matriz, v, z, N, nBandas);
 
@@ -252,12 +246,12 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
         multiplicaInteiro_Vetor (s, z, vetorAux, N);
         subtraiVetor (r, vetorAux, r, N);
 
-        tresdinicio = timestamp();
+        // tresdinicio = timestamp();
 
 		erro = multiplicaVetor_Vetor (r, r, N);
 
-        tresdfinal = timestamp() - tresdinicio;
-        tmfinal = (timestamp() - tminicio);
+        // tresdfinal = timestamp() - tresdinicio;
+        // tmfinal = (timestamp() - tminicio);
 
         conttmetodo += tmfinal;
         conttresd += tresdfinal;
@@ -304,80 +298,143 @@ inline int GradienteConjugado (double *matriz, double *b, unsigned int N, int nB
 }
 
 int main (int argc, char *argv[]) {
-	MM_typecode matcode;
-	FILE *f;
-	int M, N, nz;
-	int i=0, *row, *col;
-	double *val;
+    unsigned int N;
+    double *b, *Matriz, *x, tol;
+    int nBandas, maxIter, contIt;
 
-    //unsigned int N;
-    double *b, *Matriz, *x, tol, contIt;
-    int nBandas, maxIter;
+    maxIter = 100;
+    tol = 0.2;
+    // Nova lib
+    int *colptr = NULL;
+    int indcrd;
+    char *indfmt = NULL;
+    FILE *input;
+    char *key = NULL;
+    int khi;
+    int klo;
+    char *mxtype = NULL;
+    int ncol;
+    int neltvl;
+    int nnzero;
+    int nrhs;
+    int nrhsix;
+    int nrow;
+    int ptrcrd;
+    char *ptrfmt = NULL;
+    int rhscrd;
+    char *rhsfmt = NULL;
+    char *rhstyp = NULL;
+    int *rowind = NULL;
+    char *title = NULL;
+    int totcrd;
+    int valcrd;
+    char *valfmt = NULL;
+    double *values = NULL;
 
-    if (argc < 2){
-		fprintf(stderr, "%s < arquivo matriz >\n", argv[0]);
-		return 0;
-	}
 
-    f = fopen(argv[1], "r");
+    input = fopen("matrizMenor.rsa", "rt" );
 
-    if ( f == NULL ){
-		printf("Erro ao abrir o arquivo\n");
-		exit(1);
-	}
-
-
-	// Le os Banner do arquivo
-
-	mm_read_banner(f, &matcode);
-
-	// Le as dimensoes da matriz
-
-	mm_read_mtx_crd_size(f, &M, &N, &nz);
-
-	// Aloca memoria para armazenar a matriz
-
-	row = (int *) malloc(nz * sizeof(int));
-    col = (int *) malloc(nz * sizeof(int));
-    val = (double *) malloc(nz * sizeof(double));
-
-	// Le a matriz
-	for (i=0; i<nz; i++){
-		fscanf(f, "%d %d %lg\n", &row[i], &col[i], &val[i]);
-        row[i]--;  /* Ajusta indices de 1 para 0 */
-        col[i]--;
+    if ( !input ){
+      printf ( "\n" );
+      printf ( "  Error opening the file.\n" );
     }
 
-    // Escreve a matriz na tela
+    hb_header_read(input, &title, &key, &totcrd, &ptrcrd, &indcrd,
+        &valcrd, &rhscrd, &mxtype, &nrow, &ncol, &nnzero, &neltvl, &ptrfmt,
+        &indfmt, &valfmt, &rhsfmt, &rhstyp, &nrhs, &nrhsix
+    );
 
-	mm_write_banner(stdout, matcode);
-	mm_write_mtx_crd_size(stdout, M, N, nz);
-    for (i=0; i<nz; i++){
-        fprintf(stdout, "%d %d %20.19g\n", row[i]+1, col[i]+1, val[i]);
+    colptr = ( int * ) malloc ( ( ncol + 1 ) * sizeof ( int ) );
+
+    if ( mxtype[2] == 'A' )
+    {
+      rowind = ( int * ) malloc ( nnzero * sizeof ( int ) );
+    }
+    else if ( mxtype[2] == 'E' )
+    {
+      rowind = ( int * ) malloc ( neltvl * sizeof ( int ) );
+    }
+    else
+    {
+      printf ( "\n" );
+      printf ( "TEST05 - Warning!\n" );
+      printf ( "  Illegal value of MXTYPE character 3.\n" );
+    }
+
+
+    hb_structure_read ( input, ncol, mxtype, nnzero, neltvl,
+      ptrcrd, ptrfmt, indcrd, indfmt, colptr, rowind );
+
+    if ( mxtype[2] == 'A' )
+    {
+      values = ( double * ) malloc ( nnzero * sizeof ( double ) );
+    }
+    else if ( mxtype[2] == 'E' )
+    {
+      values =  ( double * ) malloc ( neltvl * sizeof ( double ) );
+    }
+    else
+    {
+      printf ( "\n" );
+      printf ( "  Erro = '%c'\n", mxtype[2] );
+    }
+
+    hb_values_read ( input, valcrd, mxtype, nnzero, neltvl, valfmt, values );
+
+    fclose ( input );
+
+    printf ( "\n" );
+    printf ( "  '%s'\n", title );
+    printf ( "  KEY =    '%s'\n", key );
+    printf ( "\n" );
+    printf ( "  NROW =   %d\n", nrow );
+    printf ( "  NCOL =   %d\n", ncol );
+    printf ( "  NNZERO = %d\n", nnzero );
+    printf ( "  NELTVL = %d\n", neltvl );
+
+    int i=0;
+
+    // Vetor colptr
+	for(i=0;i<=nrow;i++){
+		printf ( "  colptr =   %d\n", colptr[i] );
 	}
+	i=0;
+	printf("\n");
+
+    // Matriz rowind
+	for(i=0; i<nnzero;i++){
+		printf ( "  rowind =   %d\n", rowind[i] );
+	}
+
+	i=0;
+
+    // Valores
+	printf("\n");
+    for(i=0; i<nnzero;i++){
+		printf ( "  values =   %.2f\n", values[i] );
+	}
+
+    /*
+     Print out the  header information.
+    */
+    // hb_header_print ( title, key, totcrd, ptrcrd, indcrd, valcrd,
+    //   rhscrd, mxtype, nrow, ncol, nnzero, neltvl, ptrfmt, indfmt, valfmt,
+    //   rhsfmt, rhstyp, nrhs, nrhsix );
+
+
 	double matrizSaida[maxIter][2];
 
-	srand(20162);
 
-	/* generate_matriz (N, nBandas, Matriz);*/
-	/* generate_vector (N, b); */
+	// contIt = GradienteConjugado(rowind,colptr,nnzero,nnzero,maxIter,tol,values,matrizSaida);
 
-	printf("###########\n");
-
-	//contIt = GradienteConjugado(Matriz,b,N,nBandas,maxIter,tol,x,matrizSaida);
-
-	printf("#\n");
-	printf("# Norma Euclidiana do Resíduo e Erro aproximado\n");
+	// printf("#\n");
+	// printf("# Norma Euclidiana do Resíduo e Erro aproximado\n");
 	//imprimeSaida(matrizSaida,contIt);
 
-	printf("###########\n");
-	printf("%d\n",N);
+    free ( colptr );
+    free ( rowind );
+    free ( values );
 
-	//imprimeVetor(N,x);
-
-	free (b);
-	free (x);
-	free (Matriz);
 	return 0;
 
 }

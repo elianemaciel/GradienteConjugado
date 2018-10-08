@@ -1,0 +1,9 @@
+1SYMMETRIC STIFFNESS MATRIX SMALL GENERALIZED EIGENVALUE PROBLEM        BCSSTK01
+             5             1             1             3             0
+RSA                        5             5             9             0
+(16I5)          (16I5)          (4E20.12)                                       
+    1    3    5    7   10
+    1    2    2    3    3    4    4    5    5
+   .4E+01                .1E+01                .4E+01                .1E+01
+   .4E+01                .1E+01                .4E+01                .1E+01
+   .4E+01
