@@ -15,91 +15,105 @@ void imprimeResultado(double *resultado, int n){
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
     int imax = 1000;
     double erro = 0.00001;
-    int c,i,j,k;
-    double *x,*r,*d,sum;
-    double sigma_novo,sigma0,sigma_velho;
-    double *q;
-    double *aux1;
-    double alpha,beta;
+    int a = 1, i;
+    double *x, *r, *d, *q;
+    double dq;
+    double sigma_novo = 0, sigma0, sigma_velho;
+    double alpha, beta;
+    int coluna;
     
     x = (double*)malloc(n*sizeof(double)); 
     r = (double*)malloc(n*sizeof(double));    
     d = (double*)malloc(n*sizeof(double)); 
     q = (double*)malloc(n*sizeof(double));   
 
-    for (int i=0;i<n;i++)
+    // x = zeros(n,1);
+    for (i = 0; i < n; i++)
         x[i] = 0;
 
-    for(i=0;i<n;i++){
+    // r = b - A * x;
+    for(i = 0; i < n; i++){
         r[i] = b[i];
     }
     
-    for(i=0;i<n;i++){
+    // d = r; 
+    for(i = 0;i < n;i++){
         d[i] = r[i];
     }
     
-    sigma_novo = 0;
-    for(i=0;i<n;i++){
-        sigma_novo += r[i]*r[i]; 
+    // sigma_novo = r' * r;
+    for(i = 0; i < n; i++){
+        sigma_novo += r[i] * r[i]; 
     }
-    sigma0 = sigma_novo;    
-    c=1;
-    while (c < imax && sigma_novo > erro * erro * sigma0)
+
+    sigma0 = sigma_novo; 
+
+    while (a < imax && sigma_novo > erro * erro * sigma0)
     {
-        for(i=0;i<n;i++)
-            q[i]=0;
-            
-        int col=-1;
+        for(i = 0; i < n; i++){
+            q[i] = 0;
+        }
+        
+        //q = A * d;    
+        coluna = -1;
         i = 0;
-        while(rowind[i]!=NULL){
-            if(i+1==colptr[col+1]){ 
-                col++;
+        while(rowind[i] != NULL){
+            if(i + 1 == colptr[coluna + 1]){ 
+                coluna++;
             }
-            q[rowind[i]-1] += values[i] * d[col];   
+            q[rowind[i] - 1] += values[i] * d[coluna];   
             i++;        
         }
 
-        sum = 0;
-        for(i=0;i<n;i++){
-            sum += d[i]*q[i];
+        // alpha = sigma_novo/(d' * q);
+        dq = 0;
+        for(i = 0; i < n; i++){
+            dq += d[i] * q[i];
         }
-        alpha = sigma_novo/sum;
+        alpha = sigma_novo/dq;
         
-        for(i=0;i<n;i++){
-            x[i] += alpha *d[i];
+        // x = x + alpha * d;
+        for(i = 0; i < n; i++){
+            x[i] += alpha * d[i];
         }   
         
-        if(c%50 == 0){                    
-            for(i=0;i<n;i++)
+        if(a % 50 == 0){   
+            //r = b - A * x;                  
+            for(i = 0; i < n; i++){
                 r[i] = b[i];
+            }
             
-            int col=-1;
+            coluna = -1;
             i = 0;
-            while(rowind[i]!=NULL){
-                if(i+1==colptr[col+1])
-                    col++;
-                r[rowind[i]-1] -= values[i] * x[col];   
+            while(rowind[i] != NULL){
+                if(i + 1 == colptr[coluna + 1])
+                    coluna++;
+                r[rowind[i]-1] -= values[i] * x[coluna];   
                 i++;        
             }
             
         }
         else{
-            for(i=0;i<n;i++){
+            // r = r - alpha * q;
+            for(i = 0; i < n; i++){
                 r[i] += - alpha * q[i];
             }
         }
         
         sigma_velho = sigma_novo;
+        // sigma_novo = r' * r;
         sigma_novo = 0;
-        for(i=0;i<n;i++){
-            sigma_novo += r[i]*r[i]; 
+        for(i = 0; i < n; i++){
+            sigma_novo += r[i] * r[i]; 
         }
         
         beta = sigma_novo / sigma_velho;
-        for(i=0;i<n;i++){
+
+        // d = r + beta * d;
+        for(i = 0; i < n; i++){
             d[i] = r[i] + beta * d[i]; 
         }
-        c++;
+        a++;
     }
     imprimeResultado(x, n);
 }
@@ -208,9 +222,10 @@ int main (int argc, char *argv[]) {
     }
 
     b = (double*)malloc(ncol*sizeof(double));
+    printf("\nInforme o Vetor:\n");
     for(i=0;i<ncol;i++){
-        b[i] = colptr[i];
-    }                
+        scanf("%lf", &b[i]);
+    }               
 
     gradienteConjugado(values,colptr,rowind,b,ncol);
 
