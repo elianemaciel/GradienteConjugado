@@ -124,7 +124,7 @@ int main (int argc, char *argv[]) {
     int *colptr = NULL;
     int indcrd;
     char *indfmt = NULL;
-    FILE *input;
+    FILE *input, *arq;
     char *key = NULL;
     int khi;
     int klo;
@@ -147,12 +147,12 @@ int main (int argc, char *argv[]) {
     char *valfmt = NULL;
     double *values = NULL;
 
-    if (argc < 2){
-        fprintf(stderr, "%s < arquivo matriz >\n", argv[0]);
-        return 0;
-    }
+    // if (argc < 2){
+    //     fprintf(stderr, "%s < arquivo matriz >\n", argv[0]);
+    //     return 0;
+    // }
 
-    input = fopen(argv[1], "r");
+    input = fopen("bcsstruc2.data", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
@@ -221,11 +221,29 @@ int main (int argc, char *argv[]) {
         printf ( "  values =   %.2f\n", values[i] );
     }
 
+    printf("%d\n", ncol);
     b = (double*)malloc(ncol*sizeof(double));
-    printf("\nInforme o Vetor:\n");
-    for(i=0;i<ncol;i++){
-        scanf("%lf", &b[i]);
-    }               
+
+    arq = fopen("vetor.txt", "r");
+
+    i = 1;
+    char linha[3];
+    char *result;
+    while (!feof(arq))
+    {
+    // Lê uma linha (inclusive com o '\n')
+        result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
+        if (result){ // Se foi possível ler
+            printf("Linha %d : %s",i,linha);
+            if(linha != NULL){
+                b[i] = atof(linha);
+            }
+
+        }
+
+        i++;
+    }
+    fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol);
 
