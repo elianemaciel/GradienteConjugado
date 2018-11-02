@@ -152,7 +152,7 @@ int main (int argc, char *argv[]) {
     //     return 0;
     // }
 
-    input = fopen("bcsstruc2.data", "r");
+    input = fopen("entradas/matriz/bcsstruc2.data", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
@@ -224,7 +224,7 @@ int main (int argc, char *argv[]) {
     printf("%d\n", ncol);
     b = (double*)malloc(ncol*sizeof(double));
 
-    arq = fopen("vetor.txt", "r");
+    arq = fopen("entradas/vetor/vetor.txt", "r");
 
     i = 1;
     char linha[3];
