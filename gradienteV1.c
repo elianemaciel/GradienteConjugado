@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "hb_io.h"
 #include <math.h>
-// #include <mpi.h>
 
 void imprimeResultado(double *resultado, int n){
     printf("\n\nResultado:\n\n");
@@ -23,11 +22,11 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     double sigma_novo = 0, sigma0, sigma_velho;
     double alpha, beta;
     int coluna;
-
-    x = (double*)malloc(n*sizeof(double));
-    r = (double*)malloc(n*sizeof(double));
-    d = (double*)malloc(n*sizeof(double));
-    q = (double*)malloc(n*sizeof(double));
+    
+    x = (double*)malloc(n*sizeof(double)); 
+    r = (double*)malloc(n*sizeof(double));    
+    d = (double*)malloc(n*sizeof(double)); 
+    q = (double*)malloc(n*sizeof(double));   
 
     // x = zeros(n,1);
     for (i = 0; i < n; i++)
@@ -37,34 +36,34 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     for(i = 0; i < n; i++){
         r[i] = b[i];
     }
-
-    // d = r;
+    
+    // d = r; 
     for(i = 0;i < n;i++){
         d[i] = r[i];
     }
-
+    
     // sigma_novo = r' * r;
     for(i = 0; i < n; i++){
-        sigma_novo += r[i] * r[i];
+        sigma_novo += r[i] * r[i]; 
     }
 
-    sigma0 = sigma_novo;
+    sigma0 = sigma_novo; 
 
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
         for(i = 0; i < n; i++){
             q[i] = 0;
         }
-
-        //q = A * d;
+        
+        //q = A * d;    
         coluna = -1;
         i = 0;
         while(rowind[i] != NULL){
-            if(i + 1 == colptr[coluna + 1]){
+            if(i + 1 == colptr[coluna + 1]){ 
                 coluna++;
             }
-            q[rowind[i] - 1] += values[i] * d[coluna];
-            i++;
+            q[rowind[i] - 1] += values[i] * d[coluna];   
+            i++;        
         }
 
         // alpha = sigma_novo/(d' * q);
@@ -73,27 +72,27 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
             dq += d[i] * q[i];
         }
         alpha = sigma_novo/dq;
-
+        
         // x = x + alpha * d;
         for(i = 0; i < n; i++){
             x[i] += alpha * d[i];
-        }
-
-        if(a % 50 == 0){
-            //r = b - A * x;
+        }   
+        
+        if(a % 50 == 0){   
+            //r = b - A * x;                  
             for(i = 0; i < n; i++){
                 r[i] = b[i];
             }
-
+            
             coluna = -1;
             i = 0;
             while(rowind[i] != NULL){
                 if(i + 1 == colptr[coluna + 1])
                     coluna++;
-                r[rowind[i]-1] -= values[i] * x[coluna];
-                i++;
+                r[rowind[i]-1] -= values[i] * x[coluna];   
+                i++;        
             }
-
+            
         }
         else{
             // r = r - alpha * q;
@@ -101,19 +100,19 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
                 r[i] += - alpha * q[i];
             }
         }
-
+        
         sigma_velho = sigma_novo;
         // sigma_novo = r' * r;
         sigma_novo = 0;
         for(i = 0; i < n; i++){
-            sigma_novo += r[i] * r[i];
+            sigma_novo += r[i] * r[i]; 
         }
-
+        
         beta = sigma_novo / sigma_velho;
 
         // d = r + beta * d;
         for(i = 0; i < n; i++){
-            d[i] = r[i] + beta * d[i];
+            d[i] = r[i] + beta * d[i]; 
         }
         a++;
     }
@@ -249,7 +248,6 @@ int main (int argc, char *argv[]) {
     }
     fclose(arq);
 
-
     file_matriz = fopen("saidas/matriz.txt", "w");
 
     for(i=0; i<nnzero;i++){
@@ -257,13 +255,12 @@ int main (int argc, char *argv[]) {
     }
     fclose(file_matriz);
 
-
     gradienteConjugado(values,colptr,rowind,b,ncol);
 
     free ( colptr );
     free ( rowind );
     free ( values );
-
+    
     return 0;
 
 }
