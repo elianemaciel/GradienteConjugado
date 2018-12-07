@@ -13,12 +13,13 @@ void imprimeResultado(double *resultado, int n){
     }
 }
 
-void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double *q, double *d, int i, int div, int np, int id, int n, double erro){
+void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double *q, double *d, int div, int np, int id, int n, double erro, int nproc){
     int *displs, *scounts, *sdiv, *sdivC, *row_ind;
     double *val;
     displs = (int *)malloc(np*sizeof(int));
     scounts = (int *)malloc(np*sizeof(int));
     MPI_Status *status;
+    int i;
     /**************************************************************************
         cria os vetores com as informações
         displs - vetor com o valor de onde começa cada processo dentro do col_ptr
@@ -32,6 +33,7 @@ void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double
     if(id == 0)
         printf("\nenviando col_ptr\n");
     //envia o vetor dividido utilizando um offset
+    printf("MPI_Scatterv\n");
     MPI_Scatterv(colptr,scounts, displs,MPI_INT,colptr,div+1,MPI_INT,0,MPI_COMM_WORLD);
 
 
@@ -77,11 +79,14 @@ void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double
 
     //Envia o row_ind
     if(id == 0){
-        printf("enviando row_ind\n");
-        for(i=1;i<np;i++)
+        printf("enviando row_ind - np = %d\n", np);
+        for(i=0;i<np;i++){
+            printf("MPI_Send - row_ind = %d - %d\n", row_ind[sdiv[i]], sdivC[i]);
             MPI_Send(&row_ind[sdiv[i]],sdivC[i],MPI_INT, i,100,MPI_COMM_WORLD);
+        }
     }
     else{
+        printf("MPI_Recv - row_ind = row_ind - %d\n",  sdivC[0]);
         MPI_Recv(row_ind,sdivC[0],MPI_INT, 0,100,MPI_COMM_WORLD,status);
     }
 
@@ -89,12 +94,16 @@ void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double
     int row_limit = 0;
     if(id == 0){
         row_limit = displs[1];
-        for(i=1;i<np-1;i++)
+        for(i=1;i<np-1;i++){
+            printf("MPI_Send - displs = %d\n", displs[i+1]);
             MPI_Send(&displs[i+1],1,MPI_INT, i,300,MPI_COMM_WORLD);
+        }
         displs[np-1]++;
+        printf("MPI_Send - displs = %d\n", displs[np-1]);
         MPI_Send(&displs[np-1],1,MPI_INT, i,300,MPI_COMM_WORLD);
     }
     else{
+        printf("MPI_Recv - row_limit = %d\n", row_limit);
         MPI_Recv(&row_limit,1,MPI_INT, 0,300,MPI_COMM_WORLD,status);
     }
 
@@ -102,10 +111,14 @@ void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double
     //Envia o vetor val
     if(id == 0){
         printf("enviando valores\n");
-        for(i=1;i<np;i++)
+        for(i=1;i<np;i++){
+            printf("MPI_Send - VAL = %f - %d \n", val[sdiv[i]],sdivC[i]);
             MPI_Send(&val[sdiv[i]],sdivC[i],MPI_DOUBLE, i,200,MPI_COMM_WORLD);
+        }
+
     }
     else{
+        printf("MPI_Recv - VAL = val, %d\n", sdivC[0]);
         MPI_Recv(val,sdivC[0],MPI_DOUBLE, 0,200,MPI_COMM_WORLD,status);
     }
 
@@ -125,7 +138,7 @@ void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double
 
 }
 
-void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n, int id){
+void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n, int id, int nproc){
     int imax = 1000;
     double erro = 0.00001;
     int a = 1, i;
@@ -171,7 +184,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         coluna = -1;
         i = 0;
 
-        multiplicacao_vetor_matriz(values,colptr,rowind,q,d,i,coluna,2, id, n, erro);
+        multiplicacao_vetor_matriz(values,colptr,rowind,q,d,coluna,2, id, n, erro, nproc);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
@@ -362,7 +375,7 @@ int main (int argc, char *argv[]) {
         }
         fclose(arq);
 
-        gradienteConjugado(values,colptr,rowind,b,ncol, id);
+        gradienteConjugado(values,colptr,rowind,b,ncol, id, nproc);
 
         free ( colptr );
         free ( rowind );
