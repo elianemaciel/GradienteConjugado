@@ -19,7 +19,13 @@ gcc -o gradiente hb_io.c gradiente1.c
 # Perfilação de Código
 
 - Resultados:
-	
+
 	saida.txt
 
 
+
+# Paralelo
+
+mpicc hb_io.c gradiente2.c -o gradiente
+
+mpirun -np 2 ./gradiente
