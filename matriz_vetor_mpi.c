@@ -11,7 +11,7 @@ int main(int argc, char **argv){
 
 	int id, nproc, resto = 0, ult_linha;
 
-	MPI_Init(&argc, &argv);
+	MPI_Init(-np, 2);
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
 	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 

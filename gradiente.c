@@ -9,7 +9,7 @@ void imprimeResultado(double *resultado, int n){
     printf("\n\nResultado:\n\n");
     int i;
     for(i=0;i<n;i++){
-        printf("%f\n",resultado[i]);
+        printf("%lf\n",resultado[i]);
     }
 }
 
@@ -62,6 +62,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
             if(i + 1 == colptr[coluna + 1]){ 
                 coluna++;
             }
+            // printf("%f - %f\n", values[i], d[coluna]);
             q[rowind[i] - 1] += values[i] * d[coluna];   
             i++;        
         }
@@ -228,12 +229,12 @@ int main (int argc, char *argv[]) {
     */
     b = (double*)malloc(ncol*sizeof(double));
 
-    /*printf("\nInforme o Vetor:\n");
-    for(i=0;i<ncol;i++){
-        scanf("%lf", &b[i]);
-    } */
+    // printf("\nInforme o Vetor:\n");
+    // for(i=0;i<ncol;i++){
+    //     scanf("%lf", &b[i]);
+    // } 
 
-    //arq = fopen("entradas/vetor/vetor.txt", "r");
+    arq = fopen("entradas/vetor/vetor.txt", "r");
     arq = fopen("entradas/vetor/vetorMenor.txt", "r");
 
     i = 0;
@@ -256,7 +257,7 @@ int main (int argc, char *argv[]) {
     }
     fclose(arq);
 
-	/*
+    /*
     file_matriz = fopen("saidas/matriz.txt", "w");
 
     for(i=0; i<nnzero;i++){
