@@ -1,6 +1,6 @@
 # Compilando
 
-gcc -o gradiente hb_io.c gradiente1.c
+gcc -o gradiente hb_io.c gradiente.c
 
 # Executando
 
@@ -24,8 +24,16 @@ gcc -o gradiente hb_io.c gradiente1.c
 
 
 
-# Paralelo
+# Paralelo (não UTILIZADO)
 
 mpicc hb_io.c gradiente2.c -o gradiente
 
 mpirun -np 2 ./gradiente
+
+# Paralelo OpenMP
+
+gcc -o gradiente hb_io.c gradiente2.c -fopenmp
+
+# Executando
+
+./gradiente

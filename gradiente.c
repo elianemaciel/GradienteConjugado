@@ -59,11 +59,14 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         coluna = -1;
         i = 0;
         while(rowind[i] != NULL){
+            // printf("rowind[%d] = %d \n", i, rowind[i]);
             if(i + 1 == colptr[coluna + 1]){ 
                 coluna++;
             }
             // printf("%f - %f\n", values[i], d[coluna]);
-            q[rowind[i] - 1] += values[i] * d[coluna];   
+            q[rowind[i] - 1] += values[i] * d[coluna];
+            // printf("values[%d] = %f d[%d] = %f \n",i, values[i], coluna, d[coluna]);
+            // printf("Q[%d] = %f \n", rowind[i] - 1, q[rowind[i] - 1]);
             i++;        
         }
 
@@ -117,7 +120,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         }
         a++;
     }
-    imprimeResultado(x, n);
+    // imprimeResultado(x, n);
 }
 
 
@@ -206,7 +209,7 @@ int main (int argc, char *argv[]) {
 
     int i=0;
 
-    /*
+    
     // Vetor colptr
     for(i=0;i<nrow;i++){
         printf ( "  colptr =   %d\n", colptr[i] );
@@ -226,7 +229,7 @@ int main (int argc, char *argv[]) {
     }
 
     printf("%d\n", ncol);
-    */
+    
     b = (double*)malloc(ncol*sizeof(double));
 
     // printf("\nInforme o Vetor:\n");

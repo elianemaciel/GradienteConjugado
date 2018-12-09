@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include "hb_io.h"
 #include <math.h>
-#include <mpi.h>
+#include<omp.h>
+
+#define NTHREADS 2
 
 void imprimeResultado(double *resultado, int n){
     printf("\n\nResultado:\n\n");
@@ -13,132 +15,56 @@ void imprimeResultado(double *resultado, int n){
     }
 }
 
-void multiplicacao_vetor_matriz(double *values, int *colptr, int *rowind, double *q, double *d, int div, int np, int id, int n, double erro, int nproc){
-    int *displs, *scounts, *sdiv, *sdivC, *row_ind;
-    double *val;
-    displs = (int *)malloc(np*sizeof(int));
-    scounts = (int *)malloc(np*sizeof(int));
-    MPI_Status *status;
-    int i;
-    /**************************************************************************
-        cria os vetores com as informações
-        displs - vetor com o valor de onde começa cada processo dentro do col_ptr
-        scounts - vetor com a quantidade que será enviada para cada processo
-    **************************************************************************/
-    for (i=0; i<np; ++i) {
-        displs[i] = i*(div);
-        scounts[i] = div+1;
+void multiplicacao_vetor_matriz(int *rowind, int *colptr, double *values, double *q, double *d, int N){
+    //q = A * d;
+    // Ainda não esta correto o paralelo Cada execução um valor diferente
+    // Verificar como fazer a parte espelhada
+
+    double *v;
+
+    v = (double*)malloc(9*sizeof(double));
+
+    for(int j = 0;j < 9;j++){
+        v[j] = 0;
     }
+    int id, i, ini, fim,parte, coluna;
+    double prodparc;
+ 
+    coluna = -1;
+    int j = 0;
+    // coluna e j não são private porque compartilham nas threds 
+    #pragma omp parallel private (id,ini,fim,parte)
+    {
+        parte = 9 / omp_get_num_threads(); // Total de elementos dividido pelas threds
+        id = omp_get_thread_num( );
+        ini = parte*id;
+        fim =ini+parte;
 
-    if(id == 0)
-        printf("\nenviando col_ptr\n");
-    //envia o vetor dividido utilizando um offset
-    printf("MPI_Scatterv\n");
-    MPI_Scatterv(colptr,scounts, displs,MPI_INT,colptr,div+1,MPI_INT,0,MPI_COMM_WORLD);
-
-
-    /***********************************************************************************
-    Para o servidor:
-        sdiv - tem o valor do col_ptr que inicia  o processo i
-        sdivC - tem a quantidade que vai ser enviada para os clientes, porem o cálculo
-                da ultima é feito de forma diferente pois pode ter menos o col_ptr
-
-    Para Cliente:
-        sdiv - tem o valor do col_ptr que inicia o processo, sempre busca do 0, pois como foi
-                dividido cada processo vai sempre iniciar no col_ptr[0]
-        sdivC - tem a quantidade que vai ser recebida, porem o cálulo da última também vai
-                ser diferente pois vai ter o delimitador o E.
-    ***********************************************************************************/
-    if(id == 0 ){
-        sdiv = (int *)malloc(np*sizeof(int));
-        sdivC = (int *)malloc(np*sizeof(int));
-        for (i=0; i<np; ++i) {
-            sdiv[i] = colptr[i*(div)];
-            if(i != np-1)
-                sdivC[i] = colptr[(i*(div))+(div)] - sdiv[i];
-            else
-                sdivC[i] = colptr[n] - sdiv[i];
+        printf("ID = %d\n", id);
+        for (i=ini;i<fim;i++){
+            if(j + 1 == colptr[coluna + 1]){
+                coluna++;
+            }
+             
+            // Verificar como colocar no vetor
+            v[i] += values[j] * d[coluna];
+            printf("values[%d] = %f d[%d] = %f v[%d] = %f \n", j, values[j], coluna, d[coluna], rowind[j]-1,q[rowind[j] - 1]);
+            j++;
+        }
+        #pragma omp critical
+        {
+            // coloca a soma no vetor principal de resultados
+            // q[rowind[i] - 1] += values[i] * d[coluna];
+            // prod = prod + prodparc;
+            for (i=ini;i<fim;i++){
+                q[rowind[i] - 1] += v[i];
+                printf("q[%d] = %f \n", i, q[i]);
+            }
         }
     }
-    else{
-        sdiv = (int *)malloc(1*sizeof(int));
-        sdivC = (int *)malloc(1*sizeof(int));
-        sdiv[0] = colptr[0];
-        if(id == np-1)
-            sdivC[0] =  erro - colptr[0];
-        else
-            sdivC[0] = colptr[div] - colptr[0];
-
-        row_ind = (int *) malloc(sizeof(int) * sdivC[0]);
-        val = (double *) malloc(sizeof(double) * sdivC[0]);
-        int ini = colptr[0];
-        //alterado o valor do col_ptr, pois no row_ind sempre vai começar no 0 para cada processo
-        for(i=0; i<=div;i++)
-            colptr[i] = colptr[i] - ini;
-    }
-
-    //Envia o row_ind
-    if(id == 0){
-        printf("enviando row_ind - np = %d\n", np);
-        for(i=0;i<np;i++){
-            printf("MPI_Send - row_ind = %d - %d\n", row_ind[sdiv[i]], sdivC[i]);
-            MPI_Send(&row_ind[sdiv[i]],sdivC[i],MPI_INT, i,100,MPI_COMM_WORLD);
-        }
-    }
-    else{
-        printf("MPI_Recv - row_ind = row_ind - %d\n",  sdivC[0]);
-        MPI_Recv(row_ind,sdivC[0],MPI_INT, 0,100,MPI_COMM_WORLD,status);
-    }
-
-    //envia o indicador de limite de linha
-    int row_limit = 0;
-    if(id == 0){
-        row_limit = displs[1];
-        for(i=1;i<np-1;i++){
-            printf("MPI_Send - displs = %d\n", displs[i+1]);
-            MPI_Send(&displs[i+1],1,MPI_INT, i,300,MPI_COMM_WORLD);
-        }
-        displs[np-1]++;
-        printf("MPI_Send - displs = %d\n", displs[np-1]);
-        MPI_Send(&displs[np-1],1,MPI_INT, i,300,MPI_COMM_WORLD);
-    }
-    else{
-        printf("MPI_Recv - row_limit = %d\n", row_limit);
-        MPI_Recv(&row_limit,1,MPI_INT, 0,300,MPI_COMM_WORLD,status);
-    }
-
-
-    //Envia o vetor val
-    if(id == 0){
-        printf("enviando valores\n");
-        for(i=1;i<np;i++){
-            printf("MPI_Send - VAL = %f - %d \n", val[sdiv[i]],sdivC[i]);
-            MPI_Send(&val[sdiv[i]],sdivC[i],MPI_DOUBLE, i,200,MPI_COMM_WORLD);
-        }
-
-    }
-    else{
-        printf("MPI_Recv - VAL = val, %d\n", sdivC[0]);
-        MPI_Recv(val,sdivC[0],MPI_DOUBLE, 0,200,MPI_COMM_WORLD,status);
-    }
-
-    if(id==0){
-        q[row_ind[i] - 1] += val[i] * d[div];
-    }
-
-    // while(rowind[i] != NULL){
-
-    //     if(i + 1 == colptr[coluna + 1]){
-    //         coluna++;
-    //     }
-    //     q[rowind[i] - 1] += values[i] * d[coluna];
-    //     i++;
-    // }
-
-
 }
 
-void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n, int id, int nproc){
+void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
     int imax = 1000;
     double erro = 0.00001;
     int a = 1, i;
@@ -174,22 +100,19 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
     sigma0 = sigma_novo;
 
+    // multiplicacao_vetor_matriz(rowind,colptr, values, q, d, n);
+
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
         for(i = 0; i < n; i++){
             q[i] = 0;
         }
 
-        //q = A * d;
-        coluna = -1;
-        i = 0;
-
-        multiplicacao_vetor_matriz(values,colptr,rowind,q,d,coluna,2, id, n, erro, nproc);
+        multiplicacao_vetor_matriz(rowind,colptr, values, q, d, n);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
         for(i = 0; i < n; i++){
-            printf("Q[i] %f\n", q[i]);
             dq += d[i] * q[i];
         }
         alpha = sigma_novo/dq;
@@ -275,113 +198,82 @@ int main (int argc, char *argv[]) {
 
     int id, nproc, resto = 0, ult_linha;
 
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
-    MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+    omp_set_num_threads(NTHREADS);
+    
 
-    if(id == 0){
+    // input = fopen("entradas/matriz/bcsstruc2.data", "r");
+    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
-        // input = fopen("entradas/matriz/bcsstruc2.data", "r");
-        input = fopen("entradas/matriz/matrizMenor.rsa", "r");
-
-        if ( input == NULL ){
-            printf("Erro ao abrir o arquivo\n");
-            return 0;
-        }
-
-        hb_header_read(input, &title, &key, &totcrd, &ptrcrd, &indcrd,
-            &valcrd, &rhscrd, &mxtype, &nrow, &ncol, &nnzero, &neltvl, &ptrfmt,
-            &indfmt, &valfmt, &rhsfmt, &rhstyp, &nrhs, &nrhsix
-        );
-
-        colptr = ( int * ) malloc ( ( ncol + 1 ) * sizeof ( int ) );
-
-        if ( mxtype[2] == 'A' )
-        {
-          rowind = ( int * ) malloc ( nnzero * sizeof ( int ) );
-          values = ( double * ) malloc ( nnzero * sizeof ( double ) );
-        }
-        else if ( mxtype[2] == 'E' )
-        {
-          rowind = ( int * ) malloc ( neltvl * sizeof ( int ) );
-          values =  ( double * ) malloc ( neltvl * sizeof ( double ) );
-        }
-        else
-        {
-          printf ( "\n" );
-          printf ( "TEST05 - Warning!\n" );
-          printf ( "  Illegal value of MXTYPE character 3.\n" );
-        }
-
-
-        hb_structure_read ( input, ncol, mxtype, nnzero, neltvl,
-          ptrcrd, ptrfmt, indcrd, indfmt, colptr, rowind );
-
-
-        hb_values_read ( input, valcrd, mxtype, nnzero, neltvl, valfmt, values );
-
-        fclose ( input );
-
-        int i=0;
-
-        /*
-        // Vetor colptr
-        for(i=0;i<nrow;i++){
-            printf ( "  colptr =   %d\n", colptr[i] );
-        }
-
-        printf("\n");
-
-        // Matriz rowind
-        for(i=0; i<nnzero;i++){
-            printf ( "  rowind =   %d\n", rowind[i] );
-        }
-
-        // Valores
-        printf("\n");
-        for(i=0; i<nnzero;i++){
-            printf ( "  values =   %.2f\n", values[i] );
-        }
-
-        printf("%d\n", ncol);
-        */
-        b = (double*)malloc(ncol*sizeof(double));
-
-        /*printf("\nInforme o Vetor:\n");
-        for(i=0;i<ncol;i++){
-            scanf("%lf", &b[i]);
-        } */
-
-        // arq = fopen("entradas/vetor/vetor.txt", "r");
-        arq = fopen("entradas/vetor/vetorMenor.txt", "r");
-
-        i = 0;
-        char linha[3];
-        char *result;
-        while (!feof(arq))
-        {
-        // Lê uma linha (inclusive com o '\n')
-            result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-            //printf("Linha lida %s",result);
-            if (result){ // Se foi possível ler
-                printf("Linha %d : %s",i,linha);
-                if(linha != NULL){
-                    b[i] = atof(linha);
-                }
-
-            }
-
-            i++;
-        }
-        fclose(arq);
-
-        gradienteConjugado(values,colptr,rowind,b,ncol, id, nproc);
-
-        free ( colptr );
-        free ( rowind );
-        free ( values );
+    if ( input == NULL ){
+        printf("Erro ao abrir o arquivo\n");
+        return 0;
     }
 
+    hb_header_read(input, &title, &key, &totcrd, &ptrcrd, &indcrd,
+        &valcrd, &rhscrd, &mxtype, &nrow, &ncol, &nnzero, &neltvl, &ptrfmt,
+        &indfmt, &valfmt, &rhsfmt, &rhstyp, &nrhs, &nrhsix
+    );
+
+    colptr = ( int * ) malloc ( ( ncol + 1 ) * sizeof ( int ) );
+
+    if ( mxtype[2] == 'A' )
+    {
+      rowind = ( int * ) malloc ( nnzero * sizeof ( int ) );
+      values = ( double * ) malloc ( nnzero * sizeof ( double ) );
+    }
+    else if ( mxtype[2] == 'E' )
+    {
+      rowind = ( int * ) malloc ( neltvl * sizeof ( int ) );
+      values =  ( double * ) malloc ( neltvl * sizeof ( double ) );
+    }
+    else
+    {
+      printf ( "\n" );
+      printf ( "TEST05 - Warning!\n" );
+      printf ( "  Illegal value of MXTYPE character 3.\n" );
+    }
+
+
+    hb_structure_read ( input, ncol, mxtype, nnzero, neltvl,
+      ptrcrd, ptrfmt, indcrd, indfmt, colptr, rowind );
+
+
+    hb_values_read ( input, valcrd, mxtype, nnzero, neltvl, valfmt, values );
+
+    fclose ( input );
+
+    int i=0;
+
+    b = (double*)malloc(ncol*sizeof(double));
+
+    // arq = fopen("entradas/vetor/vetor.txt", "r");
+    arq = fopen("entradas/vetor/vetorMenor.txt", "r");
+
+    i = 0;
+    char linha[3];
+    char *result;
+    while (!feof(arq))
+    {
+    // Lê uma linha (inclusive com o '\n')
+        result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
+        //printf("Linha lida %s",result);
+        if (result){ // Se foi possível ler
+            printf("Linha %d : %s",i,linha);
+            if(linha != NULL){
+                b[i] = atof(linha);
+            }
+
+        }
+
+        i++;
+    }
+    fclose(arq);
+
+    gradienteConjugado(values,colptr,rowind,b,ncol);
+
+    free ( colptr );
+    free ( rowind );
+    free ( values );
 
 
     return 0;
