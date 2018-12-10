@@ -1,10 +1,49 @@
-# Compilando
+# Gradiente Conjugado
 
-gcc -o gradiente hb_io.c gradiente.c
+## Sequencial
+
+    gradiente.c
+
+### Compilando
+
+    gcc -o gradiente hb_io.c gradiente.c
+
+### Executando
+
+    ./gradiente
+
+## Sequencial em funções
+
+    gradiente2.c
+
+### Compilando
+
+    gcc -o gradiente hb_io.c gradiente2.c
+
+### Executando
+
+    ./gradiente2
+
+## Paralelo
+
+    gradiente2_mpi.c
+
+### Compilando
+
+    mpicc hb_io.c gradiente2_mpi.c -o gradiente
+
+### Executando
+
+    ./gradiente2_mpi
+
+## Paralelo OpenMP
+
+gcc -o gradiente hb_io.c gradiente2.c -fopenmp
 
 # Executando
 
 ./gradiente
+
 
 # Observações
 
@@ -21,19 +60,3 @@ gcc -o gradiente hb_io.c gradiente.c
 - Resultados:
 
 	saida.txt
-
-
-
-# Paralelo (não UTILIZADO)
-
-mpicc hb_io.c gradiente2.c -o gradiente
-
-mpirun -np 2 ./gradiente
-
-# Paralelo OpenMP
-
-gcc -o gradiente hb_io.c gradiente2.c -fopenmp
-
-# Executando
-
-./gradiente

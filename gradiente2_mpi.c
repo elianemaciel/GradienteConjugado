@@ -64,6 +64,7 @@ void somaVetorVetor(double *vetor1, double *vetor2, double *res, int n){
 	for(i = 0 ; i < n ; i++){
 		res[i] = vetor1[i] + vetor2[i];
 	}
+
 }
 
 void subtracaoVetorVetor(double *vetor1, double *vetor2, double *res, int n){
@@ -82,6 +83,56 @@ void geraVetor(double *b, int ncol){
 		printf("b = %f \n", b[i]);
 	}
 }
+
+// void multiplicacao_vetor_matriz(int *rowind, int *colptr, double *values, double *q, double *d, int N){
+//     //q = A * d;
+//     // Ainda não esta correto o paralelo Cada execução um valor diferente
+//     // Verificar como fazer a parte espelhada
+//
+//     double *v;
+//
+//     v = (double*)malloc(9*sizeof(double));
+//
+//     for(int j = 0;j < 9;j++){
+//         v[j] = 0;
+//     }
+//     int id, i, ini, fim,parte, coluna;
+//     double prodparc;
+//
+//     coluna = -1;
+//     int j = 0;
+//     // coluna e j não são private porque compartilham nas threds
+//     #pragma omp parallel private (id,ini,fim,parte)
+//     {
+//         parte = 9 / omp_get_num_threads(); // Total de elementos dividido pelas threds
+//         id = omp_get_thread_num( );
+//         ini = parte*id;
+//         fim =ini+parte;
+//
+//         printf("ID = %d\n", id);
+//         for (i=ini;i<fim;i++){
+//             if(j + 1 == colptr[coluna + 1]){
+//                 coluna++;
+//             }
+//
+//             // Verificar como colocar no vetor
+//             v[i] += values[j] * d[coluna];
+//             printf("values[%d] = %f d[%d] = %f v[%d] = %f \n", j, values[j], coluna, d[coluna], rowind[j]-1,q[rowind[j] - 1]);
+//             j++;
+//         }
+//         #pragma omp critical
+//         {
+//             // coloca a soma no vetor principal de resultados
+//             // q[rowind[i] - 1] += values[i] * d[coluna];
+//             // prod = prod + prodparc;
+//             for (i=ini;i<fim;i++){
+//                 q[rowind[i] - 1] += v[i];
+//                 printf("q[%d] = %f \n", i, q[i]);
+//             }
+//         }
+//     }
+// }
+
 
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol){
     int imax = 1000;
