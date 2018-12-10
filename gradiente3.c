@@ -25,24 +25,6 @@ void imprimeResultado(double *resultado, int n){
     }
 }
 
-void multiplicacaoMatrizVetor(double *values, int *colptr, int *rowind, double *vetor, double *resultado){
-    int coluna, i;
-    coluna = -1;
-    i = 0;
-    while(rowind[i] != NULL){
-        if(i + 1 == colptr[coluna + 1]){
-            coluna++;
-        }
-        resultado[rowind[i] - 1] += values[i] * vetor[coluna];
-        i++;
-    }
-    printf("\nq:\n");
-    for(i=0;i<5;i++){
-    	printf("%f\t",resultado[i]);
-    }
-    printf("\n");
-}
-
 void copiaVetor(double *vetor, double *copia, int n){
 	int i;
 	for (i = 0; i < n; i++){
@@ -69,6 +51,7 @@ void somaVetorVetor(double *vetor1, double *vetor2, double *res, int n){
 	for(i = 0 ; i < n ; i++){
 		res[i] = vetor1[i] + vetor2[i];
 	}
+
 }
 
 void subtracaoVetorVetor(double *vetor1, double *vetor2, double *res, int n){
@@ -79,24 +62,27 @@ void subtracaoVetorVetor(double *vetor1, double *vetor2, double *res, int n){
 }
 
 void geraVetor(double *b, int ncol){
-    // Inicializa vetor com números randomicos
-	srand(time(NULL));
     int i;
+	srand(time(NULL));
+
 	for( i=0 ; i<ncol ; i++ ){
 		b[i] = rand()%10;
 		printf("b = %f \n", b[i]);
 	}
 }
 
-void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol){
+void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol, int argc, char *argv[]){
     int imax = 2;
     double erro = 0.00001;
     int a = 1, i;
-    double *x, *r, *d, *q, *resultado;
+    double *x, *r, *d, *q, *resultado, *qlocal;
     double dq;
     double sigma_novo = 0, sigma0, sigma_velho;
     double alpha, beta;
     int coluna;
+    int id, np;
+
+    qlocal = (double*)malloc(ncol*sizeof(double));
 
     x = (double*)malloc(ncol*sizeof(double));
     r = (double*)malloc(ncol*sizeof(double));
@@ -121,14 +107,54 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
     sigma0 = sigma_novo;
 
+
+	// MPI_Init(&argc, &argv);
+	// MPI_Comm_rank(MPI_COMM_WORLD, &id);
+	// MPI_Comm_size(MPI_COMM_WORLD, &np);
+
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
         for(i = 0; i < ncol; i++){
             q[i] = 0;
+            qlocal[i] = 0;
         }
 
         // q = A * d;
-        multiplicacaoMatrizVetor(values, colptr, rowind, d, q);
+
+        int id, i, ini, fim,parte;
+
+        int j = 0;
+        int pptr,col;
+        // coluna e j não são private porque compartilham nas threds
+        #pragma omp parallel private (id,ini,fim,parte, pptr)
+        {
+            parte = 9 / omp_get_num_threads(); // Total de elementos dividido pelas threds
+            id = omp_get_thread_num( );
+            ini = parte*id;
+            fim =ini+parte;
+
+            printf("ID = %d, ini =%d fim = %d\n", id, ini, fim);
+            for(col=ini;col<fim;col++){
+    			pptr = colptr[col]-1;
+                printf("pptr = %d col = %d \n", pptr, col);
+
+    			do{
+    				qlocal[rowind[pptr]-1] += values[pptr] * d[col];
+                    printf("values[%d] = %f d[%d] = %f \n", pptr, values[pptr], col, d[col]);
+    				pptr++;
+    			}while(pptr < colptr[col+1]-1);
+    		}
+            #pragma omp critical
+            {
+                somaVetorVetor(qlocal, q, q, ncol);
+            }
+        }
+
+        printf("\nq:\n");
+		for(i=0;i<ncol;i++){
+			printf("%f\t",q[i]);
+		}
+		printf("\n");
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
@@ -177,6 +203,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
         a++;
     }
+    // MPI_Finalize();
     imprimeResultado(x, ncol);
 }
 
@@ -211,9 +238,7 @@ int main (int argc, char *argv[]) {
 
     int id, nproc, resto = 0, ult_linha;
 
-    // omp_set_num_threads(NTHREADS);
-
-
+    omp_set_num_threads(NTHREADS);
     // input = fopen("entradas/matriz/bcsstruc2.data", "r");
     input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
@@ -281,7 +306,7 @@ int main (int argc, char *argv[]) {
     }
     fclose(arq);
 
-    gradienteConjugado(values,colptr,rowind,b,ncol);
+    gradienteConjugado(values,colptr,rowind,b,ncol, argc, argv);
 
     free ( colptr );
     free ( rowind );

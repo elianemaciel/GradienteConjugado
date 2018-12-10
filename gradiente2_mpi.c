@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "hb_io.h"
 #include <math.h>
-#include <omp.h>
+#include <mpi.h>
 #include <time.h>
 
 
@@ -25,18 +25,9 @@ void imprimeResultado(double *resultado, int n){
     }
 }
 
-void multiplicacaoMatrizVetor(double *values, int *colptr, int *rowind, double *vetor, double *resultado){
-    int coluna, i;
-    coluna = -1;
-    i = 0;
-    while(rowind[i] != NULL){
-        if(i + 1 == colptr[coluna + 1]){
-            coluna++;
-        }
-        resultado[rowind[i] - 1] += values[i] * vetor[coluna];
-        i++;
-    }
-}
+// void multiplicacaoMatrizVetor(double *values, int *colptr, int *rowind, double *vetor, double *resultado){
+//
+// }
 
 void copiaVetor(double *vetor, double *copia, int n){
 	int i;
@@ -75,74 +66,27 @@ void subtracaoVetorVetor(double *vetor1, double *vetor2, double *res, int n){
 }
 
 void geraVetor(double *b, int ncol){
-    // Inicializa vetor com números randomicos
-	srand(time(NULL));
     int i;
+	srand(time(NULL));
+
 	for( i=0 ; i<ncol ; i++ ){
 		b[i] = rand()%10;
 		printf("b = %f \n", b[i]);
 	}
 }
 
-// void multiplicacao_vetor_matriz(int *rowind, int *colptr, double *values, double *q, double *d, int N){
-//     //q = A * d;
-//     // Ainda não esta correto o paralelo Cada execução um valor diferente
-//     // Verificar como fazer a parte espelhada
-//
-//     double *v;
-//
-//     v = (double*)malloc(9*sizeof(double));
-//
-//     for(int j = 0;j < 9;j++){
-//         v[j] = 0;
-//     }
-//     int id, i, ini, fim,parte, coluna;
-//     double prodparc;
-//
-//     coluna = -1;
-//     int j = 0;
-//     // coluna e j não são private porque compartilham nas threds
-//     #pragma omp parallel private (id,ini,fim,parte)
-//     {
-//         parte = 9 / omp_get_num_threads(); // Total de elementos dividido pelas threds
-//         id = omp_get_thread_num( );
-//         ini = parte*id;
-//         fim =ini+parte;
-//
-//         printf("ID = %d\n", id);
-//         for (i=ini;i<fim;i++){
-//             if(j + 1 == colptr[coluna + 1]){
-//                 coluna++;
-//             }
-//
-//             // Verificar como colocar no vetor
-//             v[i] += values[j] * d[coluna];
-//             printf("values[%d] = %f d[%d] = %f v[%d] = %f \n", j, values[j], coluna, d[coluna], rowind[j]-1,q[rowind[j] - 1]);
-//             j++;
-//         }
-//         #pragma omp critical
-//         {
-//             // coloca a soma no vetor principal de resultados
-//             // q[rowind[i] - 1] += values[i] * d[coluna];
-//             // prod = prod + prodparc;
-//             for (i=ini;i<fim;i++){
-//                 q[rowind[i] - 1] += v[i];
-//                 printf("q[%d] = %f \n", i, q[i]);
-//             }
-//         }
-//     }
-// }
-
-
-void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol){
+void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol, int argc, char *argv[]){
     int imax = 1000;
     double erro = 0.00001;
     int a = 1, i;
-    double *x, *r, *d, *q, *resultado;
+    double *x, *r, *d, *q, *resultado, *qlocal;
     double dq;
     double sigma_novo = 0, sigma0, sigma_velho;
     double alpha, beta;
     int coluna;
+    int id, np;
+
+    qlocal = (double*)malloc(ncol*sizeof(double));
 
     x = (double*)malloc(ncol*sizeof(double));
     r = (double*)malloc(ncol*sizeof(double));
@@ -167,14 +111,41 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
     sigma0 = sigma_novo;
 
+
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &id);
+	MPI_Comm_size(MPI_COMM_WORLD, &np);
+    printf("ID = %d NP = %d\n", id, np);
+
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
         for(i = 0; i < ncol; i++){
             q[i] = 0;
+            qlocal[i] = 0;
         }
 
         // q = A * d;
-        multiplicacaoMatrizVetor(values, colptr, rowind, d, q);
+        // multiplicacaoMatrizVetor(values, colptr, rowind, d, q);
+        int pptr,col;
+		MPI_Barrier(MPI_COMM_WORLD);
+        // printf("ID = %d\n", id);
+		for(col = id;col<ncol;col+=np){
+			pptr = colptr[col]-1;
+
+			do{
+				qlocal[rowind[pptr]-1] += values[pptr] * d[col];
+				pptr++;
+			}while(pptr < colptr[col+1]-1);
+		}
+
+		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+		// printf("\nq:\n");
+		// for(i=0;i<ncol;i++){
+		// 	printf("%f\t",q[i]);
+		// }
+		// printf("\n");
+
+		MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
@@ -223,6 +194,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
         a++;
     }
+    MPI_Finalize();
     imprimeResultado(x, ncol);
 }
 
@@ -256,9 +228,6 @@ int main (int argc, char *argv[]) {
     double *values = NULL;
 
     int id, nproc, resto = 0, ult_linha;
-
-    // omp_set_num_threads(NTHREADS);
-
 
     // input = fopen("entradas/matriz/bcsstruc2.data", "r");
     input = fopen("entradas/matriz/matrizMenor.rsa", "r");
@@ -327,7 +296,7 @@ int main (int argc, char *argv[]) {
     }
     fclose(arq);
 
-    gradienteConjugado(values,colptr,rowind,b,ncol);
+    gradienteConjugado(values,colptr,rowind,b,ncol, argc, argv);
 
     free ( colptr );
     free ( rowind );

@@ -30,19 +30,19 @@
 
 ### Compilando
 
-    mpicc hb_io.c gradiente2_mpi.c -o gradiente
+    mpicc hb_io.c gradiente2_mpi.c -o gradiente_mpi
 
 ### Executando
 
     ./gradiente2_mpi
 
-## Paralelo OpenMP
+## Paralelo OpenMP (sem utilizar)
 
-gcc -o gradiente hb_io.c gradiente2.c -fopenmp
+    gcc -o gradiente hb_io.c gradiente2.c -fopenmp
 
 # Executando
 
-./gradiente
+    ./gradiente
 
 
 # Observações
