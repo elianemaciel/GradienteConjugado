@@ -17,17 +17,14 @@
 
 #define NTHREADS 2
 
-void imprimeResultado(double *resultado, int n){
+void imprimeResultado(double *resultado, int n, double inicio, double fim){
     printf("\n\nResultado:\n\n");
 	int i;
     for(i=0;i<n;i++){
         printf("%f\n",resultado[i]);
     }
+    printf("Tempo = %f\n", fim-inicio);
 }
-
-// void multiplicacaoMatrizVetor(double *values, int *colptr, int *rowind, double *vetor, double *resultado){
-//
-// }
 
 void copiaVetor(double *vetor, double *copia, int n){
 	int i;
@@ -82,7 +79,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     double *x, *r, *d, *q, *resultado, *qlocal;
     double dq;
     double sigma_novo = 0, sigma0, sigma_velho;
-    double alpha, beta;
+    double alpha, beta, inicio, fim;
     int coluna;
     int id, np;
 
@@ -116,6 +113,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
 	MPI_Comm_size(MPI_COMM_WORLD, &np);
     printf("ID = %d NP = %d\n", id, np);
+    inicio = MPI_Wtime();
 
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
@@ -194,8 +192,12 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
         a++;
     }
+    fim = MPI_Wtime();
     MPI_Finalize();
-    imprimeResultado(x, ncol);
+    if ( id == 0 ){
+        imprimeResultado(x, ncol, inicio, fim);
+        // printf("Tempo = %f\n", fim - inicio);
+    }
 }
 
 
@@ -229,8 +231,8 @@ int main (int argc, char *argv[]) {
 
     int id, nproc, resto = 0, ult_linha;
 
-    // input = fopen("entradas/matriz/bcsstruc2.data", "r");
-    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
+    input = fopen("entradas/matriz/bcsstk05.rsa", "r");
+    // input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
@@ -274,27 +276,27 @@ int main (int argc, char *argv[]) {
 
     b = (double*)malloc(ncol*sizeof(double));
 
-    // geraVetor(b, ncol);
+    geraVetor(b, ncol);
 
     // arq = fopen("entradas/vetor/vetor.txt", "r");
-    arq = fopen("entradas/vetor/vetorMenor.txt", "r");
+    // arq = fopen("entradas/vetor/vetorMenor.txt", "r");
 
-    i = 0;
-    char linha[3];
-    char *result;
-    while (!feof(arq))
-    {
-    // Lê uma linha (inclusive com o '\n')
-        result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-        if (result){ // Se foi possível ler
-            if(linha != NULL){
-                b[i] = atof(linha);
-            }
-        }
+    // i = 0;
+    // char linha[3];
+    // char *result;
+    // while (!feof(arq))
+    // {
+    // // Lê uma linha (inclusive com o '\n')
+    //     result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
+    //     if (result){ // Se foi possível ler
+    //         if(linha != NULL){
+    //             b[i] = atof(linha);
+    //         }
+    //     }
 
-        i++;
-    }
-    fclose(arq);
+    //     i++;
+    // }
+    // fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol, argc, argv);
 

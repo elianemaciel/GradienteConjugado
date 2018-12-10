@@ -10,13 +10,19 @@
 #include <stdio.h>
 #include "hb_io.h"
 #include <math.h>
+#include <time.h>
 
-void imprimeResultado(double *resultado, int n){
+void imprimeResultado(double *resultado, int n, clock_t inicio, clock_t fim){
     printf("\n\nResultado:\n\n");
     int i;
+    clock_t t;
     for(i=0;i<n;i++){
         printf("%lf\n",resultado[i]);
     }
+    t = fim - inicio; 
+    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
+  
+    printf("Tempo = %f\n", time_taken); 
 }
 
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
@@ -54,6 +60,8 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     }
 
     sigma0 = sigma_novo;
+    
+    clock_t begin=clock();
 
     while (a < imax && sigma_novo > erro * erro * sigma0)
     {
@@ -126,7 +134,18 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         a++;
         // printf("\niteração \n");
     }
-    imprimeResultado(x, n);
+    clock_t end=clock();
+    imprimeResultado(x, n, begin, end);
+}
+
+void geraVetor(double *b, int ncol){
+    int i;
+    srand(time(NULL));
+
+    for( i=0 ; i<ncol ; i++ ){
+        b[i] = rand()%10;
+        printf("b = %f \n", b[i]);
+    }
 }
 
 
@@ -158,12 +177,7 @@ int main (int argc, char *argv[]) {
     char *valfmt = NULL;
     double *values = NULL;
 
-    // if (argc < 2){
-    //     fprintf(stderr, "%s < arquivo matriz >\n", argv[0]);
-    //     return 0;
-    // }
-
-    //input = fopen("entradas/matriz/bcsstruc2.data", "r");
+    // input = fopen("entradas/matriz/bcsstk11.rsa", "r");
     input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){
@@ -204,66 +218,35 @@ int main (int argc, char *argv[]) {
 
     fclose ( input );
 
-    /*printf ( "\n" );
-    printf ( "  '%s'\n", title );
-    printf ( "  KEY =    '%s'\n", key );
-    printf ( "\n" );
-    printf ( "  NROW =   %d\n", nrow );
-    printf ( "  NCOL =   %d\n", ncol );
-    printf ( "  NNZERO = %d\n", nnzero );
-    printf ( "  NELTVL = %d\n", neltvl );*/
-
     int i=0;
 
 
     // Vetor colptr
-    // for(i=0;i<nrow;i++){
-    //     printf ( "  colptr =   %d\n", colptr[i] );
-    // }
-    //
-    // printf("\n");
-    //
-    // // Matriz rowind
-    // for(i=0; i<nnzero;i++){
-    //     printf ( "  rowind =   %d\n", rowind[i] );
-    // }
-    //
-    // // Valores
-    // printf("\n");
-    // for(i=0; i<nnzero;i++){
-    //     printf ( "  values =   %.2f\n", values[i] );
-    // }
-
 
     b = (double*)malloc(ncol*sizeof(double));
-
-    // printf("\nInforme o Vetor:\n");
-    // for(i=0;i<ncol;i++){
-    //     scanf("%lf", &b[i]);
-    // }
-
+    geraVetor(b, ncol);
     // arq = fopen("entradas/vetor/vetor.txt", "r");
-    arq = fopen("entradas/vetor/vetorMenor.txt", "r");
+    // arq = fopen("entradas/vetor/vetorMenor.txt", "r");
 
-    i = 0;
-    char linha[3];
-    char *result;
-    while (!feof(arq))
-    {
-    // Lê uma linha (inclusive com o '\n')
-        result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-        //printf("Linha lida %s",result);
-        if (result){ // Se foi possível ler
-            printf("Linha %d : %s",i,linha);
-            if(linha != NULL){
-                b[i] = atof(linha);
-            }
+    // i = 0;
+    // char linha[3];
+    // char *result;
+    // while (!feof(arq))
+    // {
+    // // Lê uma linha (inclusive com o '\n')
+    //     result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
+    //     //printf("Linha lida %s",result);
+    //     if (result){ // Se foi possível ler
+    //         printf("Linha %d : %s",i,linha);
+    //         if(linha != NULL){
+    //             b[i] = atof(linha);
+    //         }
 
-        }
+    //     }
 
-        i++;
-    }
-    fclose(arq);
+    //     i++;
+    // }
+    // fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol);
 
