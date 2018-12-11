@@ -34,7 +34,7 @@
 
 ### Executando
 
-    ./gradiente2_mpi
+     mpirun -np 1 ./gradiente_mpi
 
 ## Paralelo OpenMP (sem utilizar)
 
