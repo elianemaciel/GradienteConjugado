@@ -248,7 +248,7 @@ int main (int argc, char *argv[]) {
     double *values = NULL;
 
     // input = fopen("entradas/matriz/bcsstk05.rsa", "r");
-    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
+    input = fopen("entradas/matriz/bcsstk11.rsa", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
@@ -292,27 +292,27 @@ int main (int argc, char *argv[]) {
 
     b = (double*)malloc(ncol*sizeof(double));
 
-    // geraVetor(b, ncol);
+    geraVetor(b, ncol);
 
     // arq = fopen("entradas/vetor/vetor.txt", "r");
-    arq = fopen("entradas/vetor/vetorMenor.txt", "r");
+    // arq = fopen("entradas/vetor/vetorMenor.txt", "r");
 
-    i = 0;
-    char linha[3];
-    char *result;
-    while (!feof(arq))
-    {
-    // Lê uma linha (inclusive com o '\n')
-        result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-        if (result){ // Se foi possível ler
-            if(linha != NULL){
-                b[i] = atof(linha);
-            }
-        }
+    // i = 0;
+    // char linha[3];
+    // char *result;
+    // while (!feof(arq))
+    // {
+    // // Lê uma linha (inclusive com o '\n')
+    //     result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
+    //     if (result){ // Se foi possível ler
+    //         if(linha != NULL){
+    //             b[i] = atof(linha);
+    //         }
+    //     }
 
-        i++;
-    }
-    fclose(arq);
+    //     i++;
+    // }
+    // fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol, argc, argv);
 
