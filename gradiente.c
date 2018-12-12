@@ -83,6 +83,9 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
                 coluna++;
             }
             q[rowind[i] - 1] += values[i] * d[coluna];
+            if ((rowind[i] - 1) != coluna){ 
+                q[coluna] += values[i] * d[rowind[i] - 1];
+            }
             i++;
         }
 
@@ -162,6 +165,9 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         if(i + 1 == colptr[coluna + 1])
             coluna++;
         r[rowind[i]-1] += values[i] * x[coluna];
+        if ((rowind[i] - 1) != coluna){ 
+                r[coluna] += values[i] * x[rowind[i] - 1];
+            }
         i++;
     }
     for(i=0;i<n;i++){
