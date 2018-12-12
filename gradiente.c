@@ -17,7 +17,7 @@ void imprimeResultado(double *resultado, int n, clock_t inicio, clock_t fim){
     int i;
     clock_t t;
     for(i=0;i<n;i++){
-        printf("%lf\n",resultado[i]);
+        printf("%.16f\n",resultado[i]);
     }
     t = fim - inicio; 
     double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
@@ -27,7 +27,7 @@ void imprimeResultado(double *resultado, int n, clock_t inicio, clock_t fim){
 
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
     int imax = 1000;
-    double erro = 0.00001;
+    double erro = 0.0000001;
     int a = 1, i;
     double *x, *r, *d, *q;
     double dq;
@@ -47,6 +47,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     // r = b - A * x;
     for(i = 0; i < n; i++){
         r[i] = b[i];
+        // printf("R = %f\n", r[i]);
     }
 
     // d = r;
@@ -57,13 +58,17 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     // sigma_novo = r' * r;
     for(i = 0; i < n; i++){
         sigma_novo += r[i] * r[i];
+
     }
+    // printf("sigma_novo %f\n", sigma_novo);
 
     sigma0 = sigma_novo;
+    // printf("sigma0 %f\n", sigma0);
     
     clock_t begin=clock();
 
-    while (a < imax && sigma_novo > erro * erro * sigma0)
+    // while (a < imax && sigma_novo > erro * erro * sigma0)
+    while (sigma_novo > erro)
     {
         for(i = 0; i < n; i++){
             q[i] = 0;
@@ -78,8 +83,6 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
                 coluna++;
             }
             q[rowind[i] - 1] += values[i] * d[coluna];
-            // printf("values[%d] = %f d[%d] = %f \n",i, values[i], coluna, d[coluna]);
-            // printf("Q[%d] = %f \n", rowind[i] - 1, q[rowind[i] - 1]);
             i++;
         }
 
@@ -95,47 +98,76 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
             x[i] += alpha * d[i];
         }
 
-        if(a % 50 == 0){
-            //r = b - A * x;
-            for(i = 0; i < n; i++){
-                r[i] = b[i];
-            }
+        // if(a % 50 == 0){
+        //     //r = b - A * x;
+        //     for(i = 0; i < n; i++){
+        //         r[i] = b[i];
+        //     }
 
-            coluna = -1;
-            i = 0;
-            while(rowind[i] != NULL){
-                if(i + 1 == colptr[coluna + 1])
-                    coluna++;
-                r[rowind[i]-1] -= values[i] * x[coluna];
-                i++;
-            }
+        //     coluna = -1;
+        //     i = 0;
+        //     while(rowind[i] != NULL){
+        //         if(i + 1 == colptr[coluna + 1])
+        //             coluna++;
+        //         r[rowind[i]-1] -= values[i] * x[coluna];
+        //         i++;
+        //     }
 
-        }
-        else{
+        //     printf("\nR50:\n");     
+        //     for(i=0;i<n;i++){
+        //         printf("%f\t", r[i]);    
+        //     }     
+        //     printf("\n");
+
+
+        // }
+        // else{
             // r = r - alpha * q;
             for(i = 0; i < n; i++){
                 r[i] += - alpha * q[i];
+                // printf("R = %f\n", r[i]);
             }
-        }
+        // }
 
         sigma_velho = sigma_novo;
+
+        // printf("sigma_velho = %f \n", sigma_velho);
         // sigma_novo = r' * r;
         sigma_novo = 0;
         for(i = 0; i < n; i++){
             sigma_novo += r[i] * r[i];
         }
+        printf("sigma_novo = %f \n", sigma_novo);
+
 
         beta = sigma_novo / sigma_velho;
+        // printf("beta = %f \n", beta);
+
 
         // d = r + beta * d;
         for(i = 0; i < n; i++){
             d[i] = r[i] + beta * d[i];
+            // printf("D = %f\n", d[i]);
         }
         a++;
         // printf("\niteração \n");
     }
     clock_t end=clock();
     imprimeResultado(x, n, begin, end);
+    for (i = 0; i < n; i++)
+        r[i] = 0;
+    coluna = -1;
+    i = 0;
+    while(rowind[i] != NULL){
+        if(i + 1 == colptr[coluna + 1])
+            coluna++;
+        r[rowind[i]-1] += values[i] * x[coluna];
+        i++;
+    }
+    for(i=0;i<n;i++){
+        printf("%.16f\t", r[i]);    
+    }     
+    printf("\n");
 }
 
 void geraVetor(double *b, int ncol){
@@ -143,7 +175,7 @@ void geraVetor(double *b, int ncol){
     srand(time(NULL));
 
     for( i=0 ; i<ncol ; i++ ){
-        b[i] = rand()%10;
+        b[i] = 1;
         printf("b = %f \n", b[i]);
     }
 }

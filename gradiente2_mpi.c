@@ -82,10 +82,10 @@ void geraVetor(double *b, int ncol){
     Função que faz a geração de valores b
     */
     int i;
-	srand(time(NULL));
+	// srand(time(NULL));
 
 	for( i=0 ; i<ncol ; i++ ){
-		b[i] = rand()%10;
+		b[i] = 1;
 		printf("b = %f \n", b[i]);
 	}
 }
@@ -100,6 +100,7 @@ void multiplicacaoMatrizVetor(int id, int n, int np, double *qlocal, double *val
 
         do{
             qlocal[rowind[i]-1] += values[i] * d[coluna];
+            printf("values = %f d = %f\n", values[i], d[coluna]);
             i++;
         }while(i < colptr[coluna+1]-1);
     }
@@ -173,7 +174,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         multiplicacaoMatrizVetor(id, ncol, np, qlocal, values, d, colptr, rowind);
 
 		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-
+        
 		MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
@@ -248,7 +249,8 @@ int main (int argc, char *argv[]) {
     double *values = NULL;
 
     // input = fopen("entradas/matriz/bcsstk05.rsa", "r");
-    input = fopen("entradas/matriz/bcsstk11.rsa", "r");
+    // input = fopen("entradas/matriz/bcsstk11.rsa", "r");
+    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
