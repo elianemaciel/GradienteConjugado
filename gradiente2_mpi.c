@@ -19,12 +19,37 @@ void imprimeResultado(double *resultado, int n, double inicio, double fim){
     /*
     Função que faz a impressão dos vetores resultados
     */
-    printf("\nResultado:\n\n");
+    printf("\nResultado x:\n\n");
 	int i;
     for(i=0; i<n; i++){
-        printf("%f\n",resultado[i]);
+        printf("%.16f\n",resultado[i]);
     }
-    printf("Tempo = %f\n", fim-inicio);
+    printf("\nTempo = %f\n", fim-inicio);
+}
+
+void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, double *x, int n){
+    /*
+    Função que faz a impressão de A.x
+    */
+    int i, coluna;
+    for (i = 0; i < n; i++)
+        r[i] = 0;
+    coluna = -1;
+    i = 0;
+    while(rowind[i] != NULL){
+        if(i + 1 == colptr[coluna + 1])
+            coluna++;
+        r[rowind[i]-1] += values[i] * x[coluna];
+        if ((rowind[i] - 1) != coluna){
+                r[coluna] += values[i] * x[rowind[i] - 1];
+            }
+        i++;
+    }
+    printf("\nAx = b \n");
+    for(i=0;i<n;i++){
+        printf("%.16f\n", r[i]);
+    }
+    printf("\n");
 }
 
 void copiaVetor(double *vetor, double *copia, int n){
@@ -82,11 +107,8 @@ void geraVetor(double *b, int ncol){
     Função que faz a geração de valores b
     */
     int i;
-	// srand(time(NULL));
-
 	for( i=0 ; i<ncol ; i++ ){
 		b[i] = 1;
-		printf("b = %f \n", b[i]);
 	}
 }
 
@@ -100,7 +122,9 @@ void multiplicacaoMatrizVetor(int id, int n, int np, double *qlocal, double *val
 
         do{
             qlocal[rowind[i]-1] += values[i] * d[coluna];
-            printf("values = %f d = %f\n", values[i], d[coluna]);
+            if ((rowind[i] - 1) != coluna){
+                qlocal[coluna] += values[i] * d[rowind[i] - 1];
+            }
             i++;
         }while(i < colptr[coluna+1]-1);
     }
@@ -115,6 +139,9 @@ void multiplicacaoMatrizVetorDois(int id, int n, int np, double *rlocal, double 
         i = colptr[coluna]-1;
         do{
             rlocal[rowind[i]-1] -= values[i] * x[coluna];
+            if ((rowind[i] - 1) != coluna){
+                rlocal[coluna] -= values[i] * x[rowind[i] - 1];
+            }
             i++;
         }while(i < colptr[coluna+1]-1);
     }
@@ -174,7 +201,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         multiplicacaoMatrizVetor(id, ncol, np, qlocal, values, d, colptr, rowind);
 
 		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-        
+
 		MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
@@ -227,6 +254,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     MPI_Finalize();
     if ( id == 0 ){
         imprimeResultado(x, ncol, inicio, fim);
+        imprimeProvaReal(r, rowind, values, colptr, x, ncol);
     }
 }
 
@@ -248,7 +276,6 @@ int main (int argc, char *argv[]) {
     char *valfmt = NULL;
     double *values = NULL;
 
-    // input = fopen("entradas/matriz/bcsstk05.rsa", "r");
     // input = fopen("entradas/matriz/bcsstk11.rsa", "r");
     input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
@@ -295,26 +322,6 @@ int main (int argc, char *argv[]) {
     b = (double*)malloc(ncol*sizeof(double));
 
     geraVetor(b, ncol);
-
-    // arq = fopen("entradas/vetor/vetor.txt", "r");
-    // arq = fopen("entradas/vetor/vetorMenor.txt", "r");
-
-    // i = 0;
-    // char linha[3];
-    // char *result;
-    // while (!feof(arq))
-    // {
-    // // Lê uma linha (inclusive com o '\n')
-    //     result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-    //     if (result){ // Se foi possível ler
-    //         if(linha != NULL){
-    //             b[i] = atof(linha);
-    //         }
-    //     }
-
-    //     i++;
-    // }
-    // fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol, argc, argv);
 
