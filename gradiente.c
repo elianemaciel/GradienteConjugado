@@ -17,12 +17,34 @@ void imprimeResultado(double *resultado, int n, clock_t inicio, clock_t fim){
     int i;
     clock_t t;
     for(i=0;i<n;i++){
-        printf("%.16f\n",resultado[i]);
+        printf("%.20f\n",resultado[i]);
     }
-    t = fim - inicio; 
-    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
-  
-    printf("Tempo = %f\n", time_taken); 
+    t = fim - inicio;
+    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds
+
+    printf("\nTempo = %f\n", time_taken);
+}
+
+void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, double *x, int n){
+    int i, coluna;
+    for (i = 0; i < n; i++)
+        r[i] = 0;
+    coluna = -1;
+    i = 0;
+    while(rowind[i] != NULL){
+        if(i + 1 == colptr[coluna + 1])
+            coluna++;
+        r[rowind[i]-1] += values[i] * x[coluna];
+        if ((rowind[i] - 1) != coluna){
+                r[coluna] += values[i] * x[rowind[i] - 1];
+            }
+        i++;
+    }
+    printf("\nAx = b \n");
+    for(i=0;i<n;i++){
+        printf("%.16f\n", r[i]);
+    }
+    printf("\n");
 }
 
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
@@ -47,7 +69,6 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     // r = b - A * x;
     for(i = 0; i < n; i++){
         r[i] = b[i];
-        // printf("R = %f\n", r[i]);
     }
 
     // d = r;
@@ -58,17 +79,13 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     // sigma_novo = r' * r;
     for(i = 0; i < n; i++){
         sigma_novo += r[i] * r[i];
-
     }
-    // printf("sigma_novo %f\n", sigma_novo);
 
     sigma0 = sigma_novo;
-    // printf("sigma0 %f\n", sigma0);
-    
+
     clock_t begin=clock();
 
-    // while (a < imax && sigma_novo > erro * erro * sigma0)
-    while (sigma_novo > erro)
+    while (a < imax && sigma_novo > erro * erro * sigma0)
     {
         for(i = 0; i < n; i++){
             q[i] = 0;
@@ -78,12 +95,11 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         coluna = -1;
         i = 0;
         while(rowind[i] != NULL){
-            // printf("rowind[%d] = %d \n", i, rowind[i]);
             if(i + 1 == colptr[coluna + 1]){
                 coluna++;
             }
             q[rowind[i] - 1] += values[i] * d[coluna];
-            if ((rowind[i] - 1) != coluna){ 
+            if ((rowind[i] - 1) != coluna){
                 q[coluna] += values[i] * d[rowind[i] - 1];
             }
             i++;
@@ -101,79 +117,51 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
             x[i] += alpha * d[i];
         }
 
-        // if(a % 50 == 0){
-        //     //r = b - A * x;
-        //     for(i = 0; i < n; i++){
-        //         r[i] = b[i];
-        //     }
+        if(a % 50 == 0){
+            //r = b - A * x;
+            for(i = 0; i < n; i++){
+                r[i] = b[i];
+            }
 
-        //     coluna = -1;
-        //     i = 0;
-        //     while(rowind[i] != NULL){
-        //         if(i + 1 == colptr[coluna + 1])
-        //             coluna++;
-        //         r[rowind[i]-1] -= values[i] * x[coluna];
-        //         i++;
-        //     }
-
-        //     printf("\nR50:\n");     
-        //     for(i=0;i<n;i++){
-        //         printf("%f\t", r[i]);    
-        //     }     
-        //     printf("\n");
-
-
-        // }
-        // else{
+            coluna = -1;
+            i = 0;
+            while(rowind[i] != NULL){
+                if(i + 1 == colptr[coluna + 1])
+                    coluna++;
+                r[rowind[i]-1] -= values[i] * x[coluna];
+                if ((rowind[i] - 1) != coluna){
+                    r[coluna] -= values[i] * x[rowind[i] - 1];
+                }
+                i++;
+            }
+        }
+        else{
             // r = r - alpha * q;
             for(i = 0; i < n; i++){
                 r[i] += - alpha * q[i];
-                // printf("R = %f\n", r[i]);
             }
-        // }
+        }
 
         sigma_velho = sigma_novo;
 
-        // printf("sigma_velho = %f \n", sigma_velho);
         // sigma_novo = r' * r;
         sigma_novo = 0;
         for(i = 0; i < n; i++){
             sigma_novo += r[i] * r[i];
         }
-        printf("sigma_novo = %f \n", sigma_novo);
 
 
         beta = sigma_novo / sigma_velho;
-        // printf("beta = %f \n", beta);
-
 
         // d = r + beta * d;
         for(i = 0; i < n; i++){
             d[i] = r[i] + beta * d[i];
-            // printf("D = %f\n", d[i]);
         }
         a++;
-        // printf("\niteração \n");
     }
     clock_t end=clock();
     imprimeResultado(x, n, begin, end);
-    for (i = 0; i < n; i++)
-        r[i] = 0;
-    coluna = -1;
-    i = 0;
-    while(rowind[i] != NULL){
-        if(i + 1 == colptr[coluna + 1])
-            coluna++;
-        r[rowind[i]-1] += values[i] * x[coluna];
-        if ((rowind[i] - 1) != coluna){ 
-                r[coluna] += values[i] * x[rowind[i] - 1];
-            }
-        i++;
-    }
-    for(i=0;i<n;i++){
-        printf("%.16f\t", r[i]);    
-    }     
-    printf("\n");
+    imprimeProvaReal(r, rowind, values, colptr, x, n);
 }
 
 void geraVetor(double *b, int ncol){
@@ -182,7 +170,6 @@ void geraVetor(double *b, int ncol){
 
     for( i=0 ; i<ncol ; i++ ){
         b[i] = 1;
-        printf("b = %f \n", b[i]);
     }
 }
 
@@ -194,29 +181,18 @@ int main (int argc, char *argv[]) {
     char *indfmt = NULL;
     FILE *input, *arq, *file_matriz;
     char *key = NULL;
-    int khi;
-    int klo;
+    int khi, klo;
     char *mxtype = NULL;
-    int ncol;
-    int neltvl;
-    int nnzero;
-    int nrhs;
-    int nrhsix;
-    int nrow;
-    int ptrcrd;
+    int ncol, neltvl, nnzero, nrhs, nrhsix, nrow, ptrcrd;
     char *ptrfmt = NULL;
     int rhscrd;
-    char *rhsfmt = NULL;
-    char *rhstyp = NULL;
+    char *rhsfmt = NULL, *rhstyp = NULL, *title = NULL, *valfmt = NULL;
     int *rowind = NULL;
-    char *title = NULL;
-    int totcrd;
-    int valcrd;
-    char *valfmt = NULL;
+    int totcrd, valcrd;
     double *values = NULL;
 
-    // input = fopen("entradas/matriz/bcsstk11.rsa", "r");
-    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
+    input = fopen("entradas/matriz/bcsstk05.rsa", "r");
+    // input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
@@ -258,33 +234,9 @@ int main (int argc, char *argv[]) {
 
     int i=0;
 
-
     // Vetor colptr
-
     b = (double*)malloc(ncol*sizeof(double));
     geraVetor(b, ncol);
-    // arq = fopen("entradas/vetor/vetor.txt", "r");
-    // arq = fopen("entradas/vetor/vetorMenor.txt", "r");
-
-    // i = 0;
-    // char linha[3];
-    // char *result;
-    // while (!feof(arq))
-    // {
-    // // Lê uma linha (inclusive com o '\n')
-    //     result = fgets(linha, 3, arq);  // o 'fgets' lê até 3 caracteres ou até o '\n'
-    //     //printf("Linha lida %s",result);
-    //     if (result){ // Se foi possível ler
-    //         printf("Linha %d : %s",i,linha);
-    //         if(linha != NULL){
-    //             b[i] = atof(linha);
-    //         }
-
-    //     }
-
-    //     i++;
-    // }
-    // fclose(arq);
 
     gradienteConjugado(values,colptr,rowind,b,ncol);
 
