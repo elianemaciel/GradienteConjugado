@@ -27,31 +27,6 @@ void imprimeResultado(double *resultado, int n, double inicio, double fim){
     printf("\nTempo = %f\n", fim-inicio);
 }
 
-void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, double *x, int n){
-    /*
-    Função que faz a impressão de A.x
-    */
-    int i, coluna;
-    for (i = 0; i < n; i++)
-        r[i] = 0;
-    coluna = -1;
-    i = 0;
-    while(rowind[i] != NULL){
-        if(i + 1 == colptr[coluna + 1])
-            coluna++;
-        r[rowind[i]-1] += values[i] * x[coluna];
-        if ((rowind[i] - 1) != coluna){
-                r[coluna] += values[i] * x[rowind[i] - 1];
-            }
-        i++;
-    }
-    printf("\nAx = b \n");
-    for(i=0;i<n;i++){
-        printf("%.30f\n", r[i]);
-    }
-    printf("\n");
-}
-
 void copiaVetor(double *vetor, double *copia, int n){
     /*
     Função que copia valores de um vetor para outro vetor
@@ -147,12 +122,28 @@ void multiplicacaoMatrizVetorDois(int id, int n, int np, double *rlocal, double 
     }
 }
 
+void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, double *x, int n){
+    /*
+    Função que faz a impressão de A.x
+    */
+    int i, coluna;
+    for (i = 0; i < n; i++)
+        r[i] = 0;
+
+    multiplicacaoMatrizVetor(0, n, 1, r, values, x, colptr, rowind);
+    printf("\nAx = b \n");
+    for(i=0;i<n;i++){
+        printf("%.6f\n", r[i]);
+    }
+    printf("\n");
+}
+
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int ncol, int argc, char *argv[]){
     /*
     Função que faz o gerenciamento do algoritmo gradiente conjugado
     */
-    int imax = 10000, coluna, id, np, a = 1, i;
-    double erro = 0.00001;
+    int imax = 100000, coluna, id, np, a = 1, i;
+    double erro = 0.000001;
     double *x, *r, *d, *q, *resultado, *qlocal, *rlocal;
     double dq, sigma_novo = 0, sigma0, sigma_velho, alpha, beta, inicio, fim;
 
@@ -188,7 +179,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 	MPI_Comm_size(MPI_COMM_WORLD, &np);
     inicio = MPI_Wtime();
 
-    while (a < imax && sigma_novo > erro * erro * sigma0){
+    while (a < imax && sigma_novo > erro){
         for(i = 0; i < ncol; i++){
             q[i] = 0;
             qlocal[i] = 0;
@@ -202,7 +193,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
 		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
-		//MPI_Barrier(MPI_COMM_WORLD);
+		// MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
@@ -254,7 +245,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     MPI_Finalize();
     if ( id == 0 ){
         imprimeResultado(x, ncol, inicio, fim);
-        // imprimeProvaReal(r, rowind, values, colptr, x, ncol);
+        imprimeProvaReal(r, rowind, values, colptr, x, ncol);
     }
 }
 

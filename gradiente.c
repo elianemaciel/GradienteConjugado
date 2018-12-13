@@ -42,7 +42,7 @@ void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, doubl
     }
     printf("\nAx = b \n");
     for(i=0;i<n;i++){
-        printf("%.30f\n", r[i]);
+        printf("%.6f\n", r[i]);
     }
     printf("\n");
 }
@@ -90,7 +90,6 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         for(i = 0; i < n; i++){
             q[i] = 0;
         }
-
         //q = A * d;
         coluna = -1;
         i = 0;
@@ -161,7 +160,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     }
     clock_t end=clock();
     imprimeResultado(x, n, begin, end);
-    // imprimeProvaReal(r, rowind, values, colptr, x, n);
+    imprimeProvaReal(r, rowind, values, colptr, x, n);
 }
 
 void geraVetor(double *b, int ncol){
