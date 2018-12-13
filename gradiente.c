@@ -42,13 +42,13 @@ void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, doubl
     }
     printf("\nAx = b \n");
     for(i=0;i<n;i++){
-        printf("%.16f\n", r[i]);
+        printf("%.30f\n", r[i]);
     }
     printf("\n");
 }
 
 void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int n){
-    int imax = 1000;
+    int imax = 10000;
     double erro = 0.0000001;
     int a = 1, i;
     double *x, *r, *d, *q;
@@ -161,7 +161,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     }
     clock_t end=clock();
     imprimeResultado(x, n, begin, end);
-    imprimeProvaReal(r, rowind, values, colptr, x, n);
+    // imprimeProvaReal(r, rowind, values, colptr, x, n);
 }
 
 void geraVetor(double *b, int ncol){
@@ -191,7 +191,7 @@ int main (int argc, char *argv[]) {
     int totcrd, valcrd;
     double *values = NULL;
 
-    input = fopen("entradas/matriz/bcsstk05.rsa", "r");
+    input = fopen("entradas/matriz/bcsstk11.rsa", "r");
     // input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){

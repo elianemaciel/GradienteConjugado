@@ -47,7 +47,7 @@ void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, doubl
     }
     printf("\nAx = b \n");
     for(i=0;i<n;i++){
-        printf("%.16f\n", r[i]);
+        printf("%.30f\n", r[i]);
     }
     printf("\n");
 }
@@ -151,7 +151,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     /*
     Função que faz o gerenciamento do algoritmo gradiente conjugado
     */
-    int imax = 1000, coluna, id, np, a = 1, i;
+    int imax = 10000, coluna, id, np, a = 1, i;
     double erro = 0.00001;
     double *x, *r, *d, *q, *resultado, *qlocal, *rlocal;
     double dq, sigma_novo = 0, sigma0, sigma_velho, alpha, beta, inicio, fim;
@@ -202,7 +202,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 
 		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
-		MPI_Barrier(MPI_COMM_WORLD);
+		//MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
@@ -254,7 +254,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
     MPI_Finalize();
     if ( id == 0 ){
         imprimeResultado(x, ncol, inicio, fim);
-        imprimeProvaReal(r, rowind, values, colptr, x, ncol);
+        // imprimeProvaReal(r, rowind, values, colptr, x, ncol);
     }
 }
 
@@ -276,8 +276,8 @@ int main (int argc, char *argv[]) {
     char *valfmt = NULL;
     double *values = NULL;
 
-    // input = fopen("entradas/matriz/bcsstk11.rsa", "r");
-    input = fopen("entradas/matriz/matrizMenor.rsa", "r");
+    input = fopen("entradas/matriz/bcsstk11.rsa", "r");
+    // input = fopen("entradas/matriz/matrizMenor.rsa", "r");
 
     if ( input == NULL ){
         printf("Erro ao abrir o arquivo\n");
