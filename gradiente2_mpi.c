@@ -133,7 +133,7 @@ void imprimeProvaReal(double *r, int *rowind, double *values, int *colptr, doubl
     multiplicacaoMatrizVetor(0, n, 1, r, values, x, colptr, rowind);
     printf("\nAx = b \n");
     for(i=0;i<n;i++){
-        printf("%.6f\n", r[i]);
+        printf("%f\n", r[i]);
     }
     printf("\n");
 }
@@ -179,7 +179,7 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
 	MPI_Comm_size(MPI_COMM_WORLD, &np);
     inicio = MPI_Wtime();
 
-    while (a < imax && sigma_novo > erro){
+    while (a < imax && sigma_novo > erro * erro * sigma0){
         for(i = 0; i < ncol; i++){
             q[i] = 0;
             qlocal[i] = 0;
@@ -192,8 +192,6 @@ void gradienteConjugado(double *values, int *colptr, int *rowind, double *b, int
         multiplicacaoMatrizVetor(id, ncol, np, qlocal, values, d, colptr, rowind);
 
 		MPI_Allreduce(qlocal,q,ncol,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-
-		// MPI_Barrier(MPI_COMM_WORLD);
 
         // alpha = sigma_novo/(d' * q);
         dq = 0;
