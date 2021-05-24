@@ -1,33 +1,35 @@
-# Gradiente Conjugado
+# Algorithm Conjugate Gradient
 
-## Sequencial
+Conjugate Gradient Method is an algorithm for the numerical solution of particular systems of linear equations, namely those whose matrix is positive-definite
+
+## Sequential Implementation
 
     gradiente.c
 
-### Compilando
+### Build
 
     gcc -o gradiente hb_io.c gradiente.c
 
-### Executando
+### Run
 
     ./gradiente
 
-## Paralelo
+## Parallel Implementation - MPI
 
     gradiente2_mpi.c
 
-### Compilando
+### Build
 
     mpicc hb_io.c gradiente2_mpi.c -o gradiente_mpi
 
-### Executando
+### Run
 
      mpirun -np 1 ./gradiente_mpi
 
 
 
-# Observações
+# Comments
 
-- Nome do arquivo da matriz de testes
+- File name of the test matrix
 
 	"bcsstruc2.data"
